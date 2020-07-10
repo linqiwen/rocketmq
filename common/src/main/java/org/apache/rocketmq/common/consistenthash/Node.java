@@ -17,11 +17,11 @@
 package org.apache.rocketmq.common.consistenthash;
 
 /**
- * Represent a node which should be mapped to a hash ring
+ * 代表一个节点应该映射到一个散列环
  */
 public interface Node {
     /**
-     * @return the key which will be used for hash mapping
+     * @return key将被用来哈希映射
      */
     String getKey();
 }

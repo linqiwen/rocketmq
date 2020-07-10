@@ -28,12 +28,21 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
- * Consistent Hashing queue algorithm
+ * 一致性哈希算法
  */
 public class AllocateMessageQueueConsistentHash implements AllocateMessageQueueStrategy {
     private final InternalLogger log = ClientLogger.getLog();
 
+    /**
+     * 每个消费者的虚拟节点数
+     * <p>
+     *     1个消费者，10个虚拟节点，即消费者构造成10个虚拟节点加入到散列环中
+     */
     private final int virtualNodeCnt;
+
+    /**
+     * 计算加入散列环的虚拟节点key，散列函数，默认MD5Hash
+     */
     private final HashFunction customHashFunction;
 
     public AllocateMessageQueueConsistentHash() {
@@ -80,6 +89,7 @@ public class AllocateMessageQueueConsistentHash implements AllocateMessageQueueS
             cidNodes.add(new ClientNode(cid));
         }
 
+        //构造hash环
         final ConsistentHashRouter<ClientNode> router; //for building hash ring
         if (customHashFunction != null) {
             router = new ConsistentHashRouter<ClientNode>(cidNodes, virtualNodeCnt, customHashFunction);

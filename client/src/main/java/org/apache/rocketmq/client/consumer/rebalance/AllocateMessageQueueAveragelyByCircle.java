@@ -24,7 +24,12 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
- * Cycle average Hashing queue algorithm
+ * 循环平均队列算法
+ * <p>
+ *     队列数小于consumer数，比如queue:2,consumer:3,queue-0分配给consumer-0，queue-1分配给consumer-1，consumer-2无分配
+ * <p>
+ *     队列数大于consumer数，比如queue:6,consumer:3,queue-0,queue-3分配给consumer-0,queue-1,queue-4分配给consumer-1,queue-2,queue-5分配consumer-2
+ *
  */
 public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQueueStrategy {
     private final InternalLogger log = ClientLogger.getLog();
@@ -39,7 +44,7 @@ public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQue
             throw new IllegalArgumentException("mqAll is null or mqAll empty");
         }
         if (cidAll == null || cidAll.isEmpty()) {
-            throw new IllegalArgumentException("cidAll is null or cidAll empty");
+
         }
 
         List<MessageQueue> result = new ArrayList<MessageQueue>();
