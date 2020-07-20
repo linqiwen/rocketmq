@@ -41,20 +41,61 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 /**
- * Base class for rebalance algorithm
+ * 用于重新平衡算法的基类
+ *
+ * @see RebalancePullImpl
+ * @see RebalancePushImpl
  */
 public abstract class RebalanceImpl {
+
+    /**
+     * 内部日志
+     */
     protected static final InternalLogger log = ClientLogger.getLog();
+
+    /**
+     * key：MessageQueue->消息队列，1个topic多个队列
+     * value：ProcessQueue->
+     */
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
+
+    /**
+     * topic和队列Map
+     * <p>
+     *     一个topic存在多个MessageQueue
+     * </p>
+     */
     protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
         new ConcurrentHashMap<String, Set<MessageQueue>>();
+
+    /**
+     * topic和订阅数据Map
+     */
     protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =
         new ConcurrentHashMap<String, SubscriptionData>();
+
+    /**
+     * 消费者组
+     */
     protected String consumerGroup;
+
+    /**
+     * 消息模式
+     */
     protected MessageModel messageModel;
+
+    /**
+     * topic下的消息队列分配策略
+     */
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
     protected MQClientInstance mQClientFactory;
 
+    /**
+     * @param consumerGroup 消费者组
+     * @param messageModel 消息模式
+     * @param allocateMessageQueueStrategy 消息队列的分配策略
+     * @param mQClientFactory mq客户端工厂
+     */
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy,
         MQClientInstance mQClientFactory) {

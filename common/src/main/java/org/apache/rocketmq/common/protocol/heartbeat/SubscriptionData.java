@@ -26,14 +26,41 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * 订阅数据
+ */
 public class SubscriptionData implements Comparable<SubscriptionData> {
+
+    /**
+     * 订阅所有
+     */
     public final static String SUB_ALL = "*";
+
+    /**
+     * 类过滤模式
+     */
     private boolean classFilterMode = false;
+
+    /**
+     * topic主题
+     */
     private String topic;
     private String subString;
+
+    /**
+     * tags标签集合
+     */
     private Set<String> tagsSet = new HashSet<String>();
     private Set<Integer> codeSet = new HashSet<Integer>();
+
+    /**
+     * 版本
+     */
     private long subVersion = System.currentTimeMillis();
+
+    /**
+     * 表达式类型
+     */
     private String expressionType = ExpressionType.TAG;
 
     @JSONField(serialize = false)

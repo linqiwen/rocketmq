@@ -20,7 +20,7 @@ import java.util.List;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
- * 同一个group下的消费者之间的消息分配算法策略
+ * 同一个group下的消费者之间的消息队列分配算法策略
  */
 public interface AllocateMessageQueueStrategy {
 
