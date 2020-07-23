@@ -18,10 +18,25 @@ package org.apache.rocketmq.client.impl.consumer;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * 拉取请求实体
+ */
 public class PullRequest {
+    /**
+     * 消费者组
+     */
     private String consumerGroup;
+    /**
+     * 消息队列
+     */
     private MessageQueue messageQueue;
+    /**
+     * 记录获取消费偏移量和消费进度。顺序消费时，对消息进行排序。再取出消费。
+     */
     private ProcessQueue processQueue;
+    /**
+     * 下一个偏移量
+     */
     private long nextOffset;
     private boolean lockedFirst = false;
 

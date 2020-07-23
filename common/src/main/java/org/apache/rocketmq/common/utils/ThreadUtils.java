@@ -29,6 +29,9 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+/**
+ * 线程工具类
+ */
 public final class ThreadUtils {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TOOLS_LOGGER_NAME);
 
@@ -109,16 +112,16 @@ public final class ThreadUtils {
     }
 
     /**
-     * Shutdown passed thread using isAlive and join.
+     * 使用线程的isAlive和join关闭线程，优雅的关闭线程.
      *
-     * @param t Thread to stop
+     * @param t 关闭线程
      */
     public static void shutdownGracefully(final Thread t) {
         shutdownGracefully(t, 0);
     }
 
     /**
-     * Shutdown passed thread using isAlive and join.
+     * 使用线程的isAlive和join关闭线程，优雅的关闭线程.
      *
      * @param millis Pass 0 if we're to wait forever.
      * @param t Thread to stop
@@ -137,12 +140,11 @@ public final class ThreadUtils {
     }
 
     /**
-     * An implementation of the graceful stop sequence recommended by
-     * {@link ExecutorService}.
+     * 优雅的暂停{@link ExecutorService}执行器.
      *
-     * @param executor executor
-     * @param timeout timeout
-     * @param timeUnit timeUnit
+     * @param executor executor 执行器
+     * @param timeout timeout 超时时间
+     * @param timeUnit timeUnit 时间单位
      */
     public static void shutdownGracefully(ExecutorService executor, long timeout, TimeUnit timeUnit) {
         // Disable new tasks from being submitted.
@@ -165,6 +167,7 @@ public final class ThreadUtils {
     }
 
     /**
+     * 私有的构造方法，防止构造这个类
      * A constructor to stop this class being constructed.
      */
     private ThreadUtils() {
