@@ -22,15 +22,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Encode/decode for Trace Data
+ * 跟踪数据的编码/解码
  */
 public class TraceDataEncoder {
 
     /**
-     * Resolving traceContext list From trace data String
+     * 从跟踪数据字符串解析traceContext列表
      *
-     * @param traceData
-     * @return
+     * @param traceData 跟踪数据字符串
+     * @return traceContext列表
      */
     public static List<TraceContext> decoderFromTraceDataString(String traceData) {
         List<TraceContext> resList = new ArrayList<TraceContext>();
@@ -103,8 +103,8 @@ public class TraceDataEncoder {
     /**
      * Encoding the trace context into data strings and keyset sets
      *
-     * @param ctx
-     * @return
+     * @param ctx 跟踪上下文
+     * @return 跟踪传输bean
      */
     public static TraceTransferBean encoderFromContextBean(TraceContext ctx) {
         if (ctx == null) {

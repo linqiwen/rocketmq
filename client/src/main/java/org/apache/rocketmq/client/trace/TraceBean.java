@@ -19,18 +19,51 @@ package org.apache.rocketmq.client.trace;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageType;
 
+/**
+ * 跟踪实体
+ */
 public class TraceBean {
     private static final String LOCAL_ADDRESS = UtilAll.ipToIPv4Str(UtilAll.getIP());
+    /**
+     * 消息主题
+     */
     private String topic = "";
+    /**
+     * 消息唯一ID
+     */
     private String msgId = "";
+    /**
+     * 消息偏移量ID,该ID中包含了broker的ip以及偏移量
+     */
     private String offsetMsgId = "";
+    /**
+     * 消息tag
+     */
     private String tags = "";
+    /**
+     * 消息索引key，根据该key可快速检索消息
+     */
     private String keys = "";
+    /**
+     * 跟踪类型为Pub时为存储该消息的Broker服务器IP；跟踪类型为subBefore、subAfter时为消费者IP。
+     */
     private String storeHost = LOCAL_ADDRESS;
     private String clientHost = LOCAL_ADDRESS;
+    /**
+     * 存储时间
+     */
     private long storeTime;
+    /**
+     * 重试次数
+     */
     private int retryTimes;
+    /**
+     * 内容长度
+     */
     private int bodyLength;
+    /**
+     * 消息类型
+     */
     private MessageType msgType;
 
 

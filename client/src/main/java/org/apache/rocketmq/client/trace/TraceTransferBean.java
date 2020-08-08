@@ -20,10 +20,16 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Trace transfering bean
+ * 跟踪传输bean
  */
 public class TraceTransferBean {
+    /**
+     * 传输数据
+     */
     private String transData;
+    /**
+     * 消息msgId和keys
+     */
     private Set<String> transKey = new HashSet<String>();
 
     public String getTransData() {

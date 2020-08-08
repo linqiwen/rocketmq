@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.common.consumer;
 
+/**
+ * 消费者的消费位置
+ * 当消费组中新增一个消费者时，指定此消费者从哪个偏移量进行消费
+ */
 public enum ConsumeFromWhere {
     CONSUME_FROM_LAST_OFFSET,
 

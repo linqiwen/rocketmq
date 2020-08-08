@@ -444,14 +444,17 @@ public class UtilAll {
 //        if (ip[0] == (byte)30 && ip[1] == (byte)10 && ip[2] == (byte)163 && ip[3] == (byte)120) {
 //        }
 
+        //A类地址，第1字节为网络地址，其它3个字节为主机地址
         if (ip[0] >= (byte) 1 && ip[0] <= (byte) 126) {
             if (ip[1] == (byte) 1 && ip[2] == (byte) 1 && ip[3] == (byte) 1) {
                 return false;
             }
+            //预留地址
             if (ip[1] == (byte) 0 && ip[2] == (byte) 0 && ip[3] == (byte) 0) {
                 return false;
             }
             return true;
+        //B类地址，第1字节、第2字节为网络地址，最后2个字节为主机地址
         } else if (ip[0] >= (byte) 128 && ip[0] <= (byte) 191) {
             if (ip[2] == (byte) 1 && ip[3] == (byte) 1) {
                 return false;
@@ -460,6 +463,7 @@ public class UtilAll {
                 return false;
             }
             return true;
+        //C类地址，第1字节、第2字节、第3字节网络地址，最后1个字节为主机地址
         } else if (ip[0] >= (byte) 192 && ip[0] <= (byte) 223) {
             if (ip[3] == (byte) 1) {
                 return false;
@@ -472,7 +476,14 @@ public class UtilAll {
         return false;
     }
 
+    /**
+     * 将ip转成字符串
+     *
+     * @param ip ipv4字节数组
+     * @return 字符串ipv4
+     */
     public static String ipToIPv4Str(byte[] ip) {
+        //非法的ip，直接返回null
         if (ip.length != 4) {
             return null;
         }

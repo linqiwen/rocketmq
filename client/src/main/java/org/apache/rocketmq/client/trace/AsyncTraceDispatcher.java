@@ -51,32 +51,80 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 import static org.apache.rocketmq.client.trace.TraceConstants.TRACE_INSTANCE_NAME;
 
+/**
+ * 异步跟踪调度程序
+ */
 public class AsyncTraceDispatcher implements TraceDispatcher {
 
     private final static InternalLogger log = ClientLogger.getLog();
+    /**
+     * 队列大小
+     */
     private final int queueSize;
+    /**
+     * 批量大小
+     */
     private final int batchSize;
+    /**
+     * 最大消息size
+     */
     private final int maxMsgSize;
+    /**
+     * 跟踪生产者
+     */
     private final DefaultMQProducer traceProducer;
+    /**
+     * 跟踪线程池
+     */
     private final ThreadPoolExecutor traceExecutor;
-    // The last discard number of log
+    /**
+     * 最后丢弃的日志
+     */
     private AtomicLong discardCount;
+    /**
+     * 工作线程
+     */
     private Thread worker;
+    /**
+     * 跟踪上下文队列
+     */
     private ArrayBlockingQueue<TraceContext> traceContextQueue;
+    /**
+     * 追加队列
+     */
     private ArrayBlockingQueue<Runnable> appenderQueue;
+    /**
+     * 关闭钩子
+     */
     private volatile Thread shutDownHook;
+    /**
+     * 异步跟踪调度程序是否关闭
+     */
     private volatile boolean stopped = false;
     private DefaultMQProducerImpl hostProducer;
     private DefaultMQPushConsumerImpl hostConsumer;
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
+    /**
+     * 调度程序ID，唯一标识
+     */
     private String dispatcherId = UUID.randomUUID().toString();
+    /**
+     * 跟踪主题名称
+     */
     private String traceTopicName;
+    /**
+     * 异步跟踪调度程序是否开始
+     */
     private AtomicBoolean isStarted = new AtomicBoolean(false);
+    /**
+     * 访问通道
+     */
     private AccessChannel accessChannel = AccessChannel.LOCAL;
 
     public AsyncTraceDispatcher(String traceTopicName, RPCHook rpcHook) {
-        // queueSize is greater than or equal to the n power of 2 of value
+        // 队列大小是大于或等于2的n次方的值
         this.queueSize = 2048;
+        // 批量大小
         this.batchSize = 100;
         this.maxMsgSize = 128000;
         this.discardCount = new AtomicLong(0L);

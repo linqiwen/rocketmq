@@ -16,13 +16,16 @@
  */
 package org.apache.rocketmq.client.consumer.listener;
 
+/**
+ * 并发消费消息的结果状态
+ */
 public enum ConsumeConcurrentlyStatus {
     /**
-     * Success consumption
+     * 消费成功
      */
     CONSUME_SUCCESS,
     /**
-     * Failure consumption,later try to consume
+     * 消费失败，以后再尝试消费
      */
     RECONSUME_LATER;
 }

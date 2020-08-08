@@ -27,17 +27,21 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
 
 /**
- * An allocate strategy proxy for based on machine room nearside priority. An actual allocate strategy can be
- * specified.
- *
- * If any consumer is alive in a machine room, the message queue of the broker which is deployed in the same machine
- * should only be allocated to those. Otherwise, those message queues can be shared along all consumers since there are
- * no alive consumer to monopolize them.
+ * 一种基于同一机房优先分配的代理策略。可以指定实际的分配策略。
+ * 如果机房中有任何消费者是活动的，那么部署在同一台机器上的消息队列应该只分配给这些消费者。
+ * 否则，这些消息队列可以在所有消费者中共享，因为没有同一机房活动的消费者垄断它们。
  */
 public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
     private final InternalLogger log = ClientLogger.getLog();
 
-    private final AllocateMessageQueueStrategy allocateMessageQueueStrategy;//actual allocate strategy
+    /**
+     * 实际分配策略
+     */
+    private final AllocateMessageQueueStrategy allocateMessageQueueStrategy;
+
+    /**
+     * 一个解析器对象，用于确定消息队列或客户端部署在哪个机房中
+     */
     private final MachineRoomResolver machineRoomResolver;
 
     public AllocateMachineRoomNearby(AllocateMessageQueueStrategy allocateMessageQueueStrategy,
@@ -76,7 +80,7 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
             return result;
         }
 
-        //group mq by machine room
+        //将mq根据机房进行分组
         Map<String/*machine room */, List<MessageQueue>> mr2Mq = new TreeMap<String, List<MessageQueue>>();
         for (MessageQueue mq : mqAll) {
             String brokerMachineRoom = machineRoomResolver.brokerDeployIn(mq);
@@ -90,7 +94,7 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
             }
         }
 
-        //group consumer by machine room
+        //将消费者根据机房进行分组
         Map<String/*machine room */, List<String/*clientId*/>> mr2c = new TreeMap<String, List<String>>();
         for (String cid : cidAll) {
             String consumerMachineRoom = machineRoomResolver.consumerDeployIn(cid);
@@ -106,7 +110,7 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
 
         List<MessageQueue> allocateResults = new ArrayList<MessageQueue>();
 
-        //1.allocate the mq that deploy in the same machine room with the current consumer
+        //1.分配消息队列给部署在同一个机房的当前消费者
         String currentMachineRoom = machineRoomResolver.consumerDeployIn(currentCID);
         List<MessageQueue> mqInThisMachineRoom = mr2Mq.remove(currentMachineRoom);
         List<String> consumerInThisMachineRoom = mr2c.get(currentMachineRoom);
@@ -114,7 +118,7 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
             allocateResults.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, mqInThisMachineRoom, consumerInThisMachineRoom));
         }
 
-        //2.allocate the rest mq to each machine room if there are no consumer alive in that machine room
+        //2.其余在同一机房没有消费者的消息队列分配给每个有消费者的机房
         for (String machineRoom : mr2Mq.keySet()) {
             if (!mr2c.containsKey(machineRoom)) { // no alive consumer in the corresponding machine room, so all consumers share these queues
                 allocateResults.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, mr2Mq.get(machineRoom), cidAll));
@@ -130,15 +134,20 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
     }
 
     /**
-     * A resolver object to determine which machine room do the message queues or clients are deployed in.
-     *
-     * AllocateMachineRoomNearby will use the results to group the message queues and clients by machine room.
-     *
-     * The result returned from the implemented method CANNOT be null.
+     * 一个解析器对象，用于确定消息队列或客户端部署在哪个机房中
+     * AllocateMachineRoomNearBy将使用结果按机房对消息队列和客户端进行分组
+     * 从实现的方法返回的结果不能为null
      */
     public interface MachineRoomResolver {
+
+        /**
+         * 获取消息队列的Broker地址
+         */
         String brokerDeployIn(MessageQueue messageQueue);
 
+        /**
+         * 获取消费者的部署地址
+         */
         String consumerDeployIn(String clientID);
     }
 }

@@ -16,24 +16,57 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 
 import java.util.List;
 
 /**
- * The context of Trace
+ * 跟踪上下文
  */
 public class TraceContext implements Comparable<TraceContext> {
 
+    /**
+     * 跟踪类型
+     */
     private TraceType traceType;
+    /**
+     * 当前时间戳
+     */
     private long timeStamp = System.currentTimeMillis();
+    /**
+     * broker所在的区域ID，取自BrokerConfig#regionId
+     * @see org.apache.rocketmq.common.BrokerConfig#regionId
+     */
     private String regionId = "";
+    /**
+     * broker所在的区域名称
+     */
     private String regionName = "";
+    /**
+     * 组名称，traceType为Pub时为生产者组的名称；如果traceType为subBefore或subAfter时为消费组名称。
+     */
     private String groupName = "";
+    /**
+     * 耗费的时间
+     */
     private int costTime = 0;
+    /**
+     * 是否发送或消费成功
+     */
     private boolean isSuccess = true;
+    /**
+     * traceType为subBefore、subAfter时使用，消费端的请求Id
+     */
     private String requestId = MessageClientIDSetter.createUniqID();
+    /**
+     * 消费状态码，可选值：SUCCESS,TIME_OUT,EXCEPTION,RETURNNULL,FAILED
+     * @see ConsumeReturnType
+     */
     private int contextCode = 0;
+    /**
+     * 跟踪的消息信息
+     */
     private List<TraceBean> traceBeans;
 
     public int getContextCode() {

@@ -24,50 +24,62 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
- * Offset store interface
+ * 偏移量存储接口
  */
 public interface OffsetStore {
     /**
-     * Load
+     * 加载
      */
     void load() throws MQClientException;
 
     /**
-     * Update the offset,store it in memory
+     * 更新偏移量,将其存储在内存中
+     *
+     * @param mq 消息队列
+     * @param offset 偏移量
      */
     void updateOffset(final MessageQueue mq, final long offset, final boolean increaseOnly);
 
     /**
-     * Get offset from local storage
+     * 从本地存储获取偏移量
      *
-     * @return The fetched offset
+     * @return 所获取的偏移量
      */
     long readOffset(final MessageQueue mq, final ReadOffsetType type);
 
     /**
-     * Persist all offsets,may be in local storage or remote name server
+     * 持久化所有偏移量,可以在本地存储或远程 name server
+     *
+     * @param mqs 消息队列集合，需要持久化偏移量的消息队列集合
      */
     void persistAll(final Set<MessageQueue> mqs);
 
     /**
-     * Persist the offset,may be in local storage or remote name server
+     * 持久化偏移量,可以在本地存储或远程 name server
+     *
+     * @param mq 消息队列，需要持久化偏移量的消息队列
      */
     void persist(final MessageQueue mq);
 
     /**
-     * Remove offset
+     * 移除消息队列的偏移量
      */
     void removeOffset(MessageQueue mq);
 
     /**
-     * @return The cloned offset table of given topic
+     * 克隆给定主题偏移表
+     *
+     * @param topic 主题
+     * @return 给定主题偏移表克隆，key:消息队列，value:偏移量
      */
     Map<MessageQueue, Long> cloneOffsetTable(String topic);
 
     /**
-     * @param mq
-     * @param offset
-     * @param isOneway
+     * 更新消费偏移量到broker
+     *
+     * @param mq 消息队列
+     * @param offset 偏移量
+     * @param isOneway 是否是单向的，不需要管处理返回结果
      */
     void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException;

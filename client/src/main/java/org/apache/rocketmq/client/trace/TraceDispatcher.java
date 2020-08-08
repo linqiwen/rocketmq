@@ -21,31 +21,34 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import java.io.IOException;
 
 /**
- * Interface of asynchronous transfer data
+ * 异步传输数据的接口
  */
 public interface TraceDispatcher {
 
     /**
-     * Initialize asynchronous transfer data module
+     * 异步传输数据模块进行初始化
+     *
+     * @param nameSrvAddr nameSrv地址
+     * @param accessChannel 访问通道
      */
     void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException;
 
     /**
-     * Append the transfering data
-     * @param ctx data infomation
-     * @return
+     * 附加转换数据
+     * @param ctx 数据信息
+     * @return {@code true}附加转换数据成功
      */
     boolean append(Object ctx);
 
     /**
-     * Write flush action
+     * 写入刷新操作
      *
      * @throws IOException
      */
     void flush() throws IOException;
 
     /**
-     * Close the trace Hook
+     * 关闭跟踪钩
      */
     void shutdown();
 }

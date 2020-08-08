@@ -16,23 +16,26 @@
  */
 package org.apache.rocketmq.client.consumer.listener;
 
+/**
+ * 有序消费消息的结果状态
+ */
 public enum ConsumeOrderlyStatus {
     /**
-     * Success consumption
+     * 消费成功
      */
     SUCCESS,
     /**
-     * Rollback consumption(only for binlog consumption)
+     * 回滚消费（仅用于binlog消耗）
      */
     @Deprecated
     ROLLBACK,
     /**
-     * Commit offset(only for binlog consumption)
+     * 提交偏移量（仅用于binlog消耗）
      */
     @Deprecated
     COMMIT,
     /**
-     * Suspend current queue a moment
+     * 暂停当前队列一段时间
      */
     SUSPEND_CURRENT_QUEUE_A_MOMENT;
 }

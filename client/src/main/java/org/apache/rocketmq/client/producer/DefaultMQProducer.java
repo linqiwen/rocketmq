@@ -42,20 +42,17 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
- * This class is the entry point for applications intending to send messages.
+ * 此类是应用程序发送消息的入口点
  * </p>
  *
- * It's fine to tune fields which exposes getter/setter methods, but keep in mind, all of them should work well out of
- * box for most scenarios.
+ * 对公开getter/setter方法的字段进行调优是很好的，但是请记住，在大多数情况下，所有这些方法都应该开箱即用的大多数场景很好地工作
  * </p>
  *
- * This class aggregates various <code>send</code> methods to deliver messages to brokers. Each of them has pros and
- * cons; you'd better understand strengths and weakness of them before actually coding.
+ * 这个类聚合了各种<code>send</code>方法来向代理传递Broker。它们各有优缺点；在实际编码之前，最好先了解它们的优缺点
  * </p>
  *
  * <p>
- * <strong>Thread Safety:</strong> After configuring and starting process, this class can be regarded as thread-safe
- * and used among multiple threads context.
+ * <strong>线程安全:</strong> 在配置和启动进程之后，这个类可以被视为线程安全的，可以在多个线程上下文中使用.
  * </p>
  */
 public class DefaultMQProducer extends ClientConfig implements MQProducer {
@@ -63,16 +60,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private final InternalLogger log = ClientLogger.getLog();
 
     /**
-     * Wrapping internal implementations for virtually all methods presented in this class.
+     * 包装这个类中几乎所有方法的内部实现
      */
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
 
     /**
-     * Producer group conceptually aggregates all producer instances of exactly same role, which is particularly
-     * important when transactional messages are involved.
+     * 生产者组在概念上聚合了完全相同角色的所有生产者实例，这在涉及事务性消息时尤其重要
      * </p>
      *
-     * For non-transactional messages, it does not matter as long as it's unique per process.
+     * 对于非事务性消息,它并不重要,只要每个进程是独立的.
      * </p>
      *
      * See {@linktourl http://rocketmq.apache.org/docs/core-concept/} for more discussion.
@@ -80,48 +76,48 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private String producerGroup;
 
     /**
-     * Just for testing or demo program
+     * 只是为了测试或演示程序
      */
     private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
 
     /**
-     * Number of queues to create per default topic.
+     * 每个默认主题要创建的队列数
      */
     private volatile int defaultTopicQueueNums = 4;
 
     /**
-     * Timeout for sending messages.
+     * 发送消息的超时时间，单位ms.
      */
     private int sendMsgTimeout = 3000;
 
     /**
-     * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
+     * 压缩消息体阈值，即大于4k的消息体默认压缩
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
     /**
-     * Maximum number of retry to perform internally before claiming sending failure in synchronous mode.
+     * 在声明同步模式下发送失败之前内部执行的最大重试次数
      * </p>
      *
-     * This may potentially cause message duplication which is up to application developers to resolve.
+     * 这可能会导致消息重复，这将由应用程序开发人员来解决
      */
     private int retryTimesWhenSendFailed = 2;
 
     /**
-     * Maximum number of retry to perform internally before claiming sending failure in asynchronous mode.
+     * 在声明异步模式下发送失败之前内部执行的最大重试次数
      * </p>
      *
-     * This may potentially cause message duplication which is up to application developers to resolve.
+     * 这可能会导致消息重复，这将由应用程序开发人员来解决
      */
     private int retryTimesWhenSendAsyncFailed = 2;
 
     /**
-     * Indicate whether to retry another broker on sending failure internally.
+     * 指示是否在内部发送失败时重试另一个代理
      */
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
     /**
-     * Maximum allowed message size in bytes.
+     * 允许的最大消息大小（字节）
      */
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
 

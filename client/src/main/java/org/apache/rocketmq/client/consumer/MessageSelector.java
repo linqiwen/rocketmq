@@ -20,9 +20,9 @@ package org.apache.rocketmq.client.consumer;
 import org.apache.rocketmq.common.filter.ExpressionType;
 
 /**
- * Message selector: select message at server.
+ * 消息选择器：选择服务器上的消息
  * <p>
- * Now, support:
+ * 目前, 支持:
  * <li>Tag: {@link org.apache.rocketmq.common.filter.ExpressionType#TAG}
  * </li>
  * <li>SQL92: {@link org.apache.rocketmq.common.filter.ExpressionType#SQL92}
@@ -32,12 +32,13 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 public class MessageSelector {
 
     /**
+     * 表达式类型
      * @see org.apache.rocketmq.common.filter.ExpressionType
      */
     private String type;
 
     /**
-     * expression content.
+     * 表达内容.
      */
     private String expression;
 
@@ -47,16 +48,16 @@ public class MessageSelector {
     }
 
     /**
-     * Use SLQ92 to select message.
+     * 使用SLQ92选择消息.
      *
-     * @param sql if null or empty, will be treated as select all message.
+     * @param sql 如果为null或为空，将被视为选择所有消息。
      */
     public static MessageSelector bySql(String sql) {
         return new MessageSelector(ExpressionType.SQL92, sql);
     }
 
     /**
-     * Use tag to select message.
+     * 使用标签选择消息
      *
      * @param tag if null or empty or "*", will be treated as select all message.
      */

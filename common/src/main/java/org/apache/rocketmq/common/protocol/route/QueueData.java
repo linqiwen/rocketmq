@@ -20,11 +20,36 @@
  */
 package org.apache.rocketmq.common.protocol.route;
 
+/**
+ * 主题的队列数据
+ */
 public class QueueData implements Comparable<QueueData> {
+    /**
+     * broker名称
+     */
     private String brokerName;
+    /**
+     * 读队列数量
+     */
     private int readQueueNums;
+    /**
+     * 写队列数量
+     */
     private int writeQueueNums;
+    /**
+     * Topic的读写模式
+     * <p>
+     *      6：同时支持读写
+     *      4：禁写
+     *      2：禁读
+     * </p>
+     * 一般情况设置为: 6
+     * @see org.apache.rocketmq.common.constant.PermName
+     */
     private int perm;
+    /**
+     * 主题同步标识
+     */
     private int topicSynFlag;
 
     public int getReadQueueNums() {

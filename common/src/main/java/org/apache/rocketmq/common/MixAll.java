@@ -144,33 +144,52 @@ public class MixAll {
         return 0;
     }
 
+    /**
+     * 将字符串存储到文件中
+     *
+     * @param str 要存储的内容
+     * @param fileName 文件名
+     */
     public static void string2File(final String str, final String fileName) throws IOException {
 
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
 
         String bakFile = fileName + ".bak";
+        //将以前的文件内容进行备份
         String prevContent = file2String(fileName);
         if (prevContent != null) {
+            //如果以前的文件内容不为空，对其内容进行备份
             string2FileNotSafe(prevContent, bakFile);
         }
 
+        //删除以前的文件
         File file = new File(fileName);
         file.delete();
 
+        //将临时文件名称修改成fileName
         file = new File(tmpFile);
         file.renameTo(new File(fileName));
     }
 
+    /**
+     * 将字符串存储到文件中，不是线程安全的
+     *
+     * @param str 要存储的内容
+     * @param fileName 文件名
+     */
     public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
         File file = new File(fileName);
+        //获取父类目
         File fileParent = file.getParentFile();
         if (fileParent != null) {
+            //父类目不存在，则创建
             fileParent.mkdirs();
         }
         FileWriter fileWriter = null;
 
         try {
+            //将要存储内容存储到文件中
             fileWriter = new FileWriter(file);
             fileWriter.write(str);
         } catch (IOException e) {
@@ -182,11 +201,23 @@ public class MixAll {
         }
     }
 
+    /**
+     * 根据文件名称读取文件内容
+     *
+     * @param fileName 文件名
+     * @return 文件内容以字符串形式返回
+     */
     public static String file2String(final String fileName) throws IOException {
         File file = new File(fileName);
         return file2String(file);
     }
 
+    /**
+     * 根据file读取文件内容
+     *
+     * @param file file文件
+     * @return 文件内容以字符串形式返回
+     */
     public static String file2String(final File file) throws IOException {
         if (file.exists()) {
             byte[] data = new byte[(int) file.length()];

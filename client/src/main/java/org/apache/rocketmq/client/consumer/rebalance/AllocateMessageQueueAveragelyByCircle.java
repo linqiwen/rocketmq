@@ -44,7 +44,7 @@ public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQue
             throw new IllegalArgumentException("mqAll is null or mqAll empty");
         }
         if (cidAll == null || cidAll.isEmpty()) {
-
+            throw new IllegalArgumentException("cidAll is null or cidAll empty");
         }
 
         List<MessageQueue> result = new ArrayList<MessageQueue>();
@@ -55,8 +55,9 @@ public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQue
                 cidAll);
             return result;
         }
-
+        //当前消费者id在消费队列中的位置
         int index = cidAll.indexOf(currentCID);
+        //将mqAll中cidAll.size取模等于index
         for (int i = index; i < mqAll.size(); i++) {
             if (i % cidAll.size() == index) {
                 result.add(mqAll.get(i));

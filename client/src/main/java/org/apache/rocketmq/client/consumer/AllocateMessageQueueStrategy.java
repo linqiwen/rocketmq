@@ -43,7 +43,7 @@ public interface AllocateMessageQueueStrategy {
     /**
      * 队列分配策略算法名称
      *
-     * @return 策略算法
+     * @return 策略算法名称
      */
     String getName();
 }

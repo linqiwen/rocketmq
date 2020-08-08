@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.common.constant;
 
+/**
+ * 权限名称
+ */
 public class PermName {
     public static final int PERM_PRIORITY = 0x1 << 3;
     public static final int PERM_READ = 0x1 << 2;
@@ -39,10 +42,16 @@ public class PermName {
         return sb.toString();
     }
 
+    /**
+     * 是否只读
+     */
     public static boolean isReadable(final int perm) {
         return (perm & PERM_READ) == PERM_READ;
     }
 
+    /**
+     * 是否只写
+     */
     public static boolean isWriteable(final int perm) {
         return (perm & PERM_WRITE) == PERM_WRITE;
     }

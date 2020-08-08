@@ -19,23 +19,35 @@ package org.apache.rocketmq.client.common;
 
 import java.util.Random;
 
+/**
+ * 线程本地下标
+ */
 public class ThreadLocalIndex {
     private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
     private final Random random = new Random();
 
+    /**
+     * 递增并且获取线程本地下标
+     */
     public int getAndIncrement() {
+        //获取线程本地下标
         Integer index = this.threadLocalIndex.get();
         if (null == index) {
+            //线程本地下标不存在
             index = Math.abs(random.nextInt());
+            //负数的绝对值，赋值给index，可能溢出
             if (index < 0)
+                //如果溢出从0开始
                 index = 0;
+            //线程本地下标设置到ThreadLocal中，在下次使用
             this.threadLocalIndex.set(index);
         }
 
         index = Math.abs(index + 1);
         if (index < 0)
+            //如果溢出从0开始
             index = 0;
-
+        //线程本地下标设置到ThreadLocal中，在下次使用
         this.threadLocalIndex.set(index);
         return index;
     }

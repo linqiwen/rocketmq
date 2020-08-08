@@ -23,7 +23,14 @@ import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
- * Computer room Hashing queue algorithm, such as Alipay logic room
+ * 机房哈希队列算法，如支付宝逻辑机房
+ * <p>
+ *     将consumeridcs中的消息队列筛选出来，再平均分配给各个消费者
+ *     和AllocateMessageQueueAveragely平均队列算法的区别
+ *     队列数大于consumer数，比如queue:4,consumer:3,
+ *     平均队列算法queue-0,queue-1分配给consumer-0,queue2分配给consumer-1,queue-3分配consumer-2
+ *     AllocateMessageQueueByMachineRoom算法queue-0,queue-3分配给consumer-0,queue1分配给consumer-1,queue-2分配consumer-2
+ * </p>
  */
 public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueStrategy {
     private Set<String> consumeridcs;

@@ -24,6 +24,9 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 
+/**
+ * MQ助手
+ */
 public class MQHelper {
     public static void resetOffsetByTimestamp(
         final MessageModel messageModel,
@@ -34,13 +37,16 @@ public class MQHelper {
     }
 
     /**
-     * Reset consumer topic offset according to time
+     * 根据时间重置消费者所消费的主题中的队列偏移量
+     * <p>
+     *     只会重置该消费者在这个主题中消费的队列
+     * </p>
      *
-     * @param messageModel which model
-     * @param instanceName which instance
-     * @param consumerGroup consumer group
-     * @param topic topic
-     * @param timestamp time
+     * @param messageModel 消息模式
+     * @param instanceName 实例名称
+     * @param consumerGroup 消费组
+     * @param topic topic 消息主题
+     * @param timestamp time 时间戳
      */
     public static void resetOffsetByTimestamp(
         final MessageModel messageModel,
@@ -61,6 +67,7 @@ public class MQHelper {
             if (mqs != null && !mqs.isEmpty()) {
                 TreeSet<MessageQueue> mqsNew = new TreeSet<MessageQueue>(mqs);
                 for (MessageQueue mq : mqsNew) {
+                    //获取根据某个时间（以毫秒为单位）的消息队列偏移量
                     long offset = consumer.searchOffset(mq, timestamp);
                     if (offset >= 0) {
                         consumer.updateConsumeOffset(mq, offset);

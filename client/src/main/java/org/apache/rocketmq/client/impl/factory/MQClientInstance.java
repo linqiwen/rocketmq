@@ -101,8 +101,14 @@ public class MQClientInstance {
     private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
     private final Lock lockNamesrv = new ReentrantLock();
     private final Lock lockHeartbeat = new ReentrantLock();
+    /**
+     * 集群部署，主从，BrokerName一样，brokerId等于0是主
+     */
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
         new ConcurrentHashMap<String, HashMap<Long, String>>();
+    /**
+     * Broker版本号
+     */
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable =
         new ConcurrentHashMap<String, HashMap<String, Integer>>();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
@@ -995,11 +1001,21 @@ public class MQClientInstance {
         return this.consumerTable.get(group);
     }
 
+    /**
+     * 查询Broker地址、版本信息
+     *
+     * @param brokerName broker名称
+     * @return 发现的Broker信息，没有返回null
+     */
     public FindBrokerResult findBrokerAddressInAdmin(final String brokerName) {
+        //broker地址
         String brokerAddr = null;
+        //false，主broker，true，从broker
         boolean slave = false;
+        //是否找到broker信息
         boolean found = false;
 
+        //key：brokerId(主broker的brokerId为0)，value：broker的地址
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
             for (Map.Entry<Long, String> entry : map.entrySet()) {
@@ -1064,6 +1080,13 @@ public class MQClientInstance {
         return null;
     }
 
+    /**
+     * 根据broker名称和broker地址查询broker的版本号
+     *
+     * @param brokerName broker名称
+     * @param brokerAddr broker地址
+     * @return broker版本号
+     */
     public int findBrokerVersion(String brokerName, String brokerAddr) {
         if (this.brokerVersionTable.containsKey(brokerName)) {
             if (this.brokerVersionTable.get(brokerName).containsKey(brokerAddr)) {

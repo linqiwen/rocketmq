@@ -46,18 +46,17 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
- * In most scenarios, this is the mostly recommended class to consume messages.
+ * 在大多数情况下，这是最建议消费消息的类
  * </p>
  *
- * Technically speaking, this push client is virtually a wrapper of the underlying pull service. Specifically, on
- * arrival of messages pulled from brokers, it roughly invokes the registered callback handler to feed the messages.
+ * 从技术上讲，这个推送客户端实际上是底层pull服务的包装器。具体地说，当从代理获取的消息到达时，它粗略地调用注册的回调处理程序来提供消息
  * </p>
  *
- * See quickstart/Consumer in the example module for a typical usage.
+ * 看快速入门/消费模块例子中一个典型应用
  * </p>
  *
  * <p>
- * <strong>Thread Safety:</strong> After initialization, the instance can be regarded as thread-safe.
+ * <strong>线程安全:</strong> 实例初始化后,可以被看作是线程安全的
  * </p>
  */
 public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsumer {
@@ -65,13 +64,12 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private final InternalLogger log = ClientLogger.getLog();
 
     /**
-     * Internal implementation. Most of the functions herein are delegated to it.
+     * 内部实现，DefaultMQPushConsumer这里的大部分功能委派给DefaultMQPushConsumerImpl进行处理
      */
     protected final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
 
     /**
-     * Consumers of the same role is required to have exactly same subscriptions and consumerGroup to correctly achieve
-     * load balance. It's required and needs to be globally unique.
+     * 相同角色的消费者必须具有完全相同的订阅和使用者组，才能正确实现负载平衡。它是必需的，而且必须是全局唯一的.
      * </p>
      *
      * See <a href="http://rocketmq.apache.org/docs/core-concept/">here</a> for further discussion.
@@ -82,21 +80,20 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Message model defines the way how messages are delivered to each consumer clients.
      * </p>
      *
-     * RocketMQ supports two message models: clustering and broadcasting. If clustering is set, consumer clients with
-     * the same {@link #consumerGroup} would only consume shards of the messages subscribed, which achieves load
-     * balances; Conversely, if the broadcasting is set, each consumer client will consume all subscribed messages
-     * separately.
+     * RocketMQ支持两种消息模型：集群和广播。如果设置了集群，则具有相同的{@link#consumerGroup}消费组
+     * 的消费者客户端将只会有一个消费者消费订阅的消息，从而实现负载平衡；
+     * 反之，如果设置了广播，则每个消费者客户端将分别消耗所有订阅的消息.
      * </p>
      *
-     * This field defaults to clustering.
+     * 这个属性默认集群.
      */
     private MessageModel messageModel = MessageModel.CLUSTERING;
 
     /**
-     * Consuming point on consumer booting.
+     * 消费者启动的消费点.
      * </p>
      *
-     * There are three consuming points:
+     * 有三个消费点:
      * <ul>
      * <li>
      * <code>CONSUME_FROM_LAST_OFFSET</code>: consumer clients pick up where it stopped previously.

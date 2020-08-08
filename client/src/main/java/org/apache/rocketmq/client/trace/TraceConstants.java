@@ -18,11 +18,29 @@ package org.apache.rocketmq.client.trace;
 
 import org.apache.rocketmq.common.MixAll;
 
+/**
+ * 跟踪常量
+ */
 public class TraceConstants {
 
+    /**
+     * 组名称
+     */
     public static final String GROUP_NAME = "_INNER_TRACE_PRODUCER";
+    /**
+     * 内容分割
+     */
     public static final char CONTENT_SPLITOR = (char) 1;
+    /**
+     * 字段分割
+     */
     public static final char FIELD_SPLITOR = (char) 2;
+    /**
+     * 跟踪实例名称
+     */
     public static final String TRACE_INSTANCE_NAME = "PID_CLIENT_INNER_TRACE_PRODUCER";
+    /**
+     * 跟踪主题前缀
+     */
     public static final String TRACE_TOPIC_PREFIX = MixAll.SYSTEM_TOPIC_PREFIX + "TRACE_DATA_";
 }
