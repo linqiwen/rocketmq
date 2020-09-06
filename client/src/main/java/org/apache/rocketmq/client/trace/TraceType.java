@@ -29,7 +29,7 @@ public enum TraceType {
      */
     SubBefore,
     /**
-     * 自定义的业务消费逻辑之后
+     * 执行自定义的业务消费逻辑之后
      */
     SubAfter,
 }

@@ -35,6 +35,9 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
+/**
+ * 过滤服务管理器
+ */
 public class FilterServerManager {
 
     public static final long FILTER_SERVER_MAX_IDLE_TIME_MILLS = 30000;
@@ -144,8 +147,17 @@ public class FilterServerManager {
         return addr;
     }
 
+    /**
+     * 过滤服务信息
+     */
     static class FilterServerInfo {
+        /**
+         * 过滤服务地址
+         */
         private String filterServerAddr;
+        /**
+         * 最近的更新时间
+         */
         private long lastUpdateTimestamp;
 
         public String getFilterServerAddr() {

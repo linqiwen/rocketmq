@@ -24,6 +24,35 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+/**
+ * ConsumeQueue定长的结构，每一条记录固定20字节
+ * <p>
+ *     8字节              4字节        8字节
+ *     commitLog offset  size         tag hashcode
+ * </p>
+ * <p>
+ *     ConsumeQueue中并不需要存储消息的内容，而存储的是消息在CommitLog中的offset。也就是说，ConsumeQueue其实是CommitLog的一个索引文件。
+ *     一个ConsumeQueue文件对应topic下的一个队列
+ * </p>
+ * <p>
+ *     ConsumeQueue的作用
+ *     1、通过broker保存的offset可以在ConsumeQueue中获取消息，从而快速的定位到commitLog的消息位置
+ *     2、过滤tag是也是通过遍历ConsumeQueue来实现的（先比较hash(tag)符合条件的再到consumer比较tag原文）
+ *     3、并且ConsumeQueue还能保存于操作系统的PageCache进行缓存提升检索性能
+ * </p>
+ * <p>
+ *     单个consumeQueue文件中默认包含30万个条目
+ *     单个文件的长度为30w x 20字节，单个ConsumeQueue文件可以看出是一个ConsumeQueue条目的数组，
+ *     其下标为ConsumeQueue的逻辑偏移量，消息消费
+ *     进度存储的偏移量即逻辑偏移量。ConsumeQueue即为CommitLog文件的索引文件，
+ *     其构建机制是当消息到达CommitLog文件后，由专门的线程产生消息转发任务，从而构建消息
+ *     消费队列文件与indexFile索引文件
+ * </p>
+ * <p>
+ *     indexFile,如果需要根据消息ID，来查找消息，consumeQueue中没有存储消息ID,如果不采取其他措施，得遍历commitLog文件，indexFile就是为了解决这个问题的文件
+ * </p>
+ *
+ */
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 

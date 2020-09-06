@@ -616,6 +616,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    /**
+     * 启动消费者
+     */
     public synchronized void start() throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:
@@ -644,13 +647,17 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 if (this.defaultMQPullConsumer.getOffsetStore() != null) {
                     this.offsetStore = this.defaultMQPullConsumer.getOffsetStore();
                 } else {
+                    //判断消息模式是集群还是广播
                     switch (this.defaultMQPullConsumer.getMessageModel()) {
+                        //广播采用本地存储
                         case BROADCASTING:
                             this.offsetStore = new LocalFileOffsetStore(this.mQClientFactory, this.defaultMQPullConsumer.getConsumerGroup());
                             break;
+                        //集群采用broker存储
                         case CLUSTERING:
                             this.offsetStore = new RemoteBrokerOffsetStore(this.mQClientFactory, this.defaultMQPullConsumer.getConsumerGroup());
                             break;
+                        //其他直接退出
                         default:
                             break;
                     }

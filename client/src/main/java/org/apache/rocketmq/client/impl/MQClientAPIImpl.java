@@ -165,6 +165,9 @@ public class MQClientAPIImpl {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
     }
 
+    /**
+     * 远程客户端
+     */
     private final RemotingClient remotingClient;
     private final TopAddressing topAddressing;
     private final ClientRemotingProcessor clientRemotingProcessor;
@@ -1203,6 +1206,13 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 获取默认主题的路由信息
+     *
+     * @param topic 主题
+     * @param timeoutMillis 获取主题路由信息的超时参数
+     * @return 此topic的路由信息
+     */
     public TopicRouteData getDefaultTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
         throws RemotingException, MQClientException, InterruptedException {
 
@@ -1215,13 +1225,24 @@ public class MQClientAPIImpl {
         return getTopicRouteInfoFromNameServer(topic, timeoutMillis, true);
     }
 
+    /**
+     * 从nameServer获取topic路由信息
+     *
+     * @param topic 主题
+     * @param timeoutMillis 超时时间
+     * @param allowTopicNotExist 是否允许主题不存在
+     * @return 主题的路由信息
+     */
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis,
         boolean allowTopicNotExist) throws MQClientException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        //获取路由信息的请求头
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
+        //请求头中设置主题
         requestHeader.setTopic(topic);
-
+        //构造获取路由信息的请求命令
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
 
+        //同步调用
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {

@@ -38,6 +38,9 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * 消费者消费消息队列偏移量的本地存储实现
+ * <p>
+ *     DefaultMQPushConsumer为BROADCASTING模式，各个Consumer没有互相干扰，使用LocalFileOffsetStore，把Offset存储在Consumer本地
+ * </p>
  */
 public class LocalFileOffsetStore implements OffsetStore {
     /**
@@ -114,10 +117,11 @@ public class LocalFileOffsetStore implements OffsetStore {
             }
             //此队列的消息偏移量存在true原有消息队列的偏移量的基础加上传入offset偏移量
             if (null != offsetOld) {
-                //判断increaseOnly
                 if (increaseOnly) {
+                    //increaseOnly为true在原有偏移量的基础上加上传入进来的偏移量
                     MixAll.compareAndIncreaseOnly(offsetOld, offset);
                 } else {
+                    //如果increaseOnly为false，将原有偏移量设置为传入进来的偏移量
                     offsetOld.set(offset);
                 }
             }
@@ -145,7 +149,7 @@ public class LocalFileOffsetStore implements OffsetStore {
                         //从内存中读取到此消息队列的偏移量，返回
                         return offset.get();
                     } else if (ReadOffsetType.READ_FROM_MEMORY == type) {
-                        //判断传入的读取类型是否只从内存中读取，如果是，读取不到直接返回
+                        //判断传入的读取类型是否只从内存中读取，如果是，读取不到直接返回-1
                         return -1;
                     }
                 }
@@ -158,7 +162,9 @@ public class LocalFileOffsetStore implements OffsetStore {
                     } catch (MQClientException e) {
                         return -1;
                     }
+                    //如果本地磁盘文件中读取消息队列的消费偏移量存在
                     if (offsetSerializeWrapper != null && offsetSerializeWrapper.getOffsetTable() != null) {
+                        //获取此消息队列的偏移量
                         AtomicLong offset = offsetSerializeWrapper.getOffsetTable().get(mq);
                         //磁盘中消息队列的消费偏移量数据存在
                         if (offset != null) {
@@ -184,16 +190,20 @@ public class LocalFileOffsetStore implements OffsetStore {
             return;
 
         OffsetSerializeWrapper offsetSerializeWrapper = new OffsetSerializeWrapper();
+        //持久化内存的传入进来的所有消息队列偏移量
         for (Map.Entry<MessageQueue, AtomicLong> entry : this.offsetTable.entrySet()) {
+            //如果内存中的消息队列在传入进来的消息队列中
             if (mqs.contains(entry.getKey())) {
                 AtomicLong offset = entry.getValue();
                 offsetSerializeWrapper.getOffsetTable().put(entry.getKey(), offset);
             }
         }
 
+        //将offsetSerializeWrapper序列化为字符串
         String jsonString = offsetSerializeWrapper.toJson(true);
         if (jsonString != null) {
             try {
+                //将字符串存储到本地文件中
                 MixAll.string2File(jsonString, this.storePath);
             } catch (IOException e) {
                 log.error("persistAll consumer offset Exception, " + this.storePath, e);
@@ -230,22 +240,30 @@ public class LocalFileOffsetStore implements OffsetStore {
         return cloneOffsetTable;
     }
 
+    /**
+     * 获取消费者消费消息队列的本地偏移量，本地偏移量在广播模式使用
+     */
     private OffsetSerializeWrapper readLocalOffset() throws MQClientException {
         String content = null;
         try {
+            //获取文件内容
             content = MixAll.file2String(this.storePath);
         } catch (IOException e) {
             log.warn("Load local offset store file exception", e);
         }
+        //消费者消费消息队列的偏移量存储位置文件内容为空
         if (null == content || content.length() == 0) {
+            //从备份文件读取
             return this.readLocalOffsetBak();
         } else {
             OffsetSerializeWrapper offsetSerializeWrapper = null;
             try {
+                //将文件内容反序列化为消息队列消费偏移量序列化包装类
                 offsetSerializeWrapper =
                         OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
             } catch (Exception e) {
                 log.warn("readLocalOffset Exception, and try to correct", e);
+                //如果读取消费者消费消息队列的偏移量存储位置文件内容异常，读取从备份文件读取
                 return this.readLocalOffsetBak();
             }
 

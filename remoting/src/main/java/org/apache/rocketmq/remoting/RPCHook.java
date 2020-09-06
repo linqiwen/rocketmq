@@ -19,9 +19,25 @@ package org.apache.rocketmq.remoting;
 
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * RPC钩子
+ */
 public interface RPCHook {
+    /**
+     * 请求之前
+     *
+     * @param remoteAddr 远程地址
+     * @param request 请求命令
+     */
     void doBeforeRequest(final String remoteAddr, final RemotingCommand request);
 
+    /**
+     * 请求之后
+     *
+     * @param remoteAddr 远程地址
+     * @param request 请求命令
+     * @param response 响应命令
+     */
     void doAfterResponse(final String remoteAddr, final RemotingCommand request,
         final RemotingCommand response);
 }

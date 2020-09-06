@@ -372,12 +372,21 @@ public class UtilAll {
         return str;
     }
 
+    /**
+     * 判断字符串是否为null或者空串
+     *
+     * @param str 要检验的字符串
+     * @return {@code true} 字符串为null或者空串
+     */
     public static boolean isBlank(String str) {
         int strLen;
+        //字符串为null或者空串
         if (str == null || (strLen = str.length()) == 0) {
             return true;
         }
+        //遍历字符串中的字符
         for (int i = 0; i < strLen; i++) {
+            //如果存在
             if (!Character.isWhitespace(str.charAt(i))) {
                 return false;
             }

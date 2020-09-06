@@ -23,9 +23,18 @@ import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
+/**
+ * 集群信息
+ */
 public class ClusterInfo extends RemotingSerializable {
+    /**
+     * broker名称，broker数据信息
+     * 主从是相同broker名称，不同brokerId
+     */
     private HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    /**
+     * 集群名称，集群里的所有broker，主从brokerName相同
+     */
     private HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
 
     public HashMap<String, BrokerData> getBrokerAddrTable() {
@@ -44,13 +53,23 @@ public class ClusterInfo extends RemotingSerializable {
         this.clusterAddrTable = clusterAddrTable;
     }
 
+    /**
+     * 获取集群里的所有broker地址
+     *
+     * @param cluster 集群名称
+     * @return 集群里的所有broker地址列表
+     */
     public String[] retrieveAllAddrByCluster(String cluster) {
         List<String> addrs = new ArrayList<String>();
         if (clusterAddrTable.containsKey(cluster)) {
+            //根据集群名称获取所有的broker名称，主从broker名称一样，brokerId不一样
             Set<String> brokerNames = clusterAddrTable.get(cluster);
+            //遍历所有broker名称
             for (String brokerName : brokerNames) {
+                //获取broker名称所对应的broker数据
                 BrokerData brokerData = brokerAddrTable.get(brokerName);
                 if (null != brokerData) {
+                    //将brokerName里的所有broker地址加到列表中
                     addrs.addAll(brokerData.getBrokerAddrs().values());
                 }
             }

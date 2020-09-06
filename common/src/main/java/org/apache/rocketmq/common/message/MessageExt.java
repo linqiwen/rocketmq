@@ -25,22 +25,61 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 public class MessageExt extends Message {
     private static final long serialVersionUID = 5720810158625748049L;
 
+    /**
+     * 队列id
+     */
     private int queueId;
 
+    /**
+     * 消息的存储大小
+     */
     private int storeSize;
 
+    /**
+     * 队列偏移量
+     */
     private long queueOffset;
+    /**
+     * 系统标识
+     */
     private int sysFlag;
+    /**
+     * 消息诞生的时间戳
+     */
     private long bornTimestamp;
+    /**
+     * 发送消息的主机
+     */
     private SocketAddress bornHost;
 
+    /**
+     * 消息被存储的时间戳
+     */
     private long storeTimestamp;
+    /**
+     * 消息存储主机
+     */
     private SocketAddress storeHost;
+    /**
+     * 消息id
+     */
     private String msgId;
+    /**
+     * commitLog偏移量
+     */
     private long commitLogOffset;
+    /**
+     * 内容的crc
+     */
     private int bodyCRC;
+    /**
+     * 重新消费次数
+     */
     private int reconsumeTimes;
 
+    /**
+     * 事务的半消息偏移量
+     */
     private long preparedTransactionOffset;
 
     public MessageExt() {
@@ -56,6 +95,9 @@ public class MessageExt extends Message {
         this.msgId = msgId;
     }
 
+    /**
+     * 获取主题的过滤类型，单标签还是多标签
+     */
     public static TopicFilterType parseTopicFilterType(final int sysFlag) {
         if ((sysFlag & MessageSysFlag.MULTI_TAGS_FLAG) == MessageSysFlag.MULTI_TAGS_FLAG) {
             return TopicFilterType.MULTI_TAG;
@@ -64,31 +106,60 @@ public class MessageExt extends Message {
         return TopicFilterType.SINGLE_TAG;
     }
 
+    /**
+     * 将SocketAddress的ip和端口存到ByteBuffer
+     *
+     * @param socketAddress 套接字地址
+     * @param byteBuffer byteBuffer
+     * @return byteBuffer
+     */
     public static ByteBuffer socketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
         InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
+        //前4个字节存放地址
         byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
+        //再四个字节存放端口
         byteBuffer.putInt(inetSocketAddress.getPort());
+        //翻转
         byteBuffer.flip();
         return byteBuffer;
     }
 
+    /**
+     * 将SocketAddress的ip和端口存到ByteBuffer
+     *
+     * @param socketAddress 套接字地址
+     * @return byteBuffer
+     */
     public static ByteBuffer socketAddress2ByteBuffer(SocketAddress socketAddress) {
+        //ByteBuffer分配8个长度，存放地址和端口
         ByteBuffer byteBuffer = ByteBuffer.allocate(8);
         return socketAddress2ByteBuffer(socketAddress, byteBuffer);
     }
 
+    /**
+     * 获取发送消息主机ByteBuffer
+     */
     public ByteBuffer getBornHostBytes() {
         return socketAddress2ByteBuffer(this.bornHost);
     }
 
+    /**
+     * 获取发送消息主机到传入的ByteBuffer中
+     */
     public ByteBuffer getBornHostBytes(ByteBuffer byteBuffer) {
         return socketAddress2ByteBuffer(this.bornHost, byteBuffer);
     }
 
+    /**
+     * 获取存储消息主机到ByteBuffer中
+     */
     public ByteBuffer getStoreHostBytes() {
         return socketAddress2ByteBuffer(this.storeHost);
     }
 
+    /**
+     * 获取存储消息主机到传入的ByteBuffer中
+     */
     public ByteBuffer getStoreHostBytes(ByteBuffer byteBuffer) {
         return socketAddress2ByteBuffer(this.storeHost, byteBuffer);
     }
@@ -117,6 +188,9 @@ public class MessageExt extends Message {
         this.bornHost = bornHost;
     }
 
+    /**
+     * 获取发送消息的主机地址
+     */
     public String getBornHostString() {
         if (this.bornHost != null) {
             InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
@@ -126,6 +200,9 @@ public class MessageExt extends Message {
         return null;
     }
 
+    /**
+     * 获取发送消息的主机名称
+     */
     public String getBornHostNameString() {
         if (this.bornHost != null) {
             InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;

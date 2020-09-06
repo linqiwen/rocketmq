@@ -37,12 +37,22 @@ import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHea
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
- * Remote storage implementation
+ * 远程存储实现
+ * <p>
+ *     DefaultMQPushConsumer的CLUSTERING模式，由Broker端存储和控制Offset的值，使用RemoteBrokerOffsetStore
+ * </p>
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
     private final static InternalLogger log = ClientLogger.getLog();
     private final MQClientInstance mQClientFactory;
+    /**
+     * 消费者组名
+     */
     private final String groupName;
+    /**
+     * 消费者对每个消息队列的消费偏移量，互不影响
+     * key:消息队列，value:偏移量
+     */
     private ConcurrentMap<MessageQueue, AtomicLong> offsetTable =
         new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
@@ -55,41 +65,68 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     public void load() {
     }
 
+    /**
+     * 更新消息队列的偏移量
+     *
+     * @param mq           需更新偏移量的消息队列
+     * @param offset       要新增或者设置的偏移量
+     * @param increaseOnly true原有的偏移量的基础加上传入offset偏移量
+     */
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {
+            //从内存中获取消息队列消费的偏移量
             AtomicLong offsetOld = this.offsetTable.get(mq);
+            //此队列的消息偏移量不存在
             if (null == offsetOld) {
+                //将传入进来的消息队列对应的消息偏移量加入内存中
                 offsetOld = this.offsetTable.putIfAbsent(mq, new AtomicLong(offset));
             }
 
+            //此队列的消息偏移量存在true原有消息队列的偏移量的基础加上传入offset偏移量
             if (null != offsetOld) {
                 if (increaseOnly) {
+                    //increaseOnly为true在原有偏移量的基础上加上传入进来的偏移量
                     MixAll.compareAndIncreaseOnly(offsetOld, offset);
                 } else {
+                    //如果increaseOnly为false，将原有偏移量设置为传入进来的偏移量
                     offsetOld.set(offset);
                 }
             }
         }
     }
 
+    /**
+     * 读取消息队列的偏移量
+     *
+     * @param mq   消息队列
+     * @param type 读消息队列偏移量的数据源类型
+     * @return 该消息队列的偏移量，读取不到返回-1
+     */
     @Override
     public long readOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
             switch (type) {
+                //先从内存读取，内存读取不到从broker读取
                 case MEMORY_FIRST_THEN_STORE:
+                //从内存读取
                 case READ_FROM_MEMORY: {
+                    //从内存中读取此消息队列的偏移量
                     AtomicLong offset = this.offsetTable.get(mq);
                     if (offset != null) {
+                        //从内存中读取到此消息队列的偏移量，返回
                         return offset.get();
                     } else if (ReadOffsetType.READ_FROM_MEMORY == type) {
+                        //判断传入的读取类型是否只从内存中读取，如果是，读取不到直接返回-1
                         return -1;
                     }
                 }
                 case READ_FROM_STORE: {
                     try {
+                        //从broker获取消费者的消费消息队列的偏移量
                         long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
                         AtomicLong offset = new AtomicLong(brokerOffset);
+                        //更新此消息队列的偏移量
                         this.updateOffset(mq, offset.get(), false);
                         return brokerOffset;
                     }
@@ -228,12 +265,20 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
+    /**
+     * 从broker获取传入进来的消息队列在此消费者的偏移量
+     *
+     * @param mq 消息队列
+     * @return 消费者消费此消息队列的偏移量
+     */
     private long fetchConsumeOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
+        //从当前消费者中本地缓存的broker中获取消息队列中发broker信息
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
-
+            //当前消费者中本地缓存的broker中不存在消息队列的broker信息，从nameServer中此topic的路由信息
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            //再次从当前消费者中本地缓存的broker中获取消息队列中发broker信息
             findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         }
 

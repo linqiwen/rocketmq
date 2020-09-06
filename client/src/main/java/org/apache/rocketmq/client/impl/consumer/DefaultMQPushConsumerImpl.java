@@ -104,7 +104,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private volatile ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
     private PullAPIWrapper pullAPIWrapper;
+    /**
+     * 服务是否暂停
+     */
     private volatile boolean pause = false;
+    /**
+     * 消费是否有序
+     */
     private boolean consumeOrderly = false;
     private MessageListener messageListenerInner;
     private OffsetStore offsetStore;
@@ -1036,9 +1042,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     @Override
     public boolean isSubscribeTopicNeedUpdate(String topic) {
+        //获取到消费者订阅的所有topic数据
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
+            //如果topic在消费者订阅的topic中
             if (subTable.containsKey(topic)) {
+                //如果消费者中订阅的topic和消息队列的map中不存在这个topic返回true
                 return !this.rebalanceImpl.topicSubscribeInfoTable.containsKey(topic);
             }
         }

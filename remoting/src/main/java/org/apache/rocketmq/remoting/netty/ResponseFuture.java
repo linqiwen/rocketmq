@@ -24,19 +24,55 @@ import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * 响应future
+ */
 public class ResponseFuture {
+    /**
+     * 请求id
+     */
     private final int opaque;
+    /**
+     * 通道
+     */
     private final Channel processChannel;
+    /**
+     * 超时时间
+     */
     private final long timeoutMillis;
+    /**
+     * 回调方法
+     */
     private final InvokeCallback invokeCallback;
+    /**
+     * 开始时间
+     */
     private final long beginTimestamp = System.currentTimeMillis();
+    /**
+     * 使用countDownLatch等待服务响应唤醒
+     */
     private final CountDownLatch countDownLatch = new CountDownLatch(1);
 
+    /**
+     * 只释放一次的信号量
+     */
     private final SemaphoreReleaseOnlyOnce once;
 
+    /**
+     * 只执行一次回调
+     */
     private final AtomicBoolean executeCallbackOnlyOnce = new AtomicBoolean(false);
+    /**
+     * 响应的命令
+     */
     private volatile RemotingCommand responseCommand;
+    /**
+     * 发送请求是否ok
+     */
     private volatile boolean sendRequestOK = true;
+    /**
+     * 异常
+     */
     private volatile Throwable cause;
 
     public ResponseFuture(Channel channel, int opaque, long timeoutMillis, InvokeCallback invokeCallback,
@@ -48,32 +84,58 @@ public class ResponseFuture {
         this.once = once;
     }
 
+    /**
+     * 执行回调方法
+     */
     public void executeInvokeCallback() {
         if (invokeCallback != null) {
+            //回调方法只执行一次
             if (this.executeCallbackOnlyOnce.compareAndSet(false, true)) {
                 invokeCallback.operationComplete(this);
             }
         }
     }
 
+    /**
+     * 释放信号量
+     */
     public void release() {
         if (this.once != null) {
             this.once.release();
         }
     }
 
+    /**
+     * 判断是否超时
+     */
     public boolean isTimeout() {
+        //当前时间和开始时间的时间差
         long diff = System.currentTimeMillis() - this.beginTimestamp;
+        //如果时间差大于超时时间，超时
         return diff > this.timeoutMillis;
     }
 
+    /**
+     * 等待远程响应
+     *
+     * @param timeoutMillis 等待的超时时间
+     * @return 远程命令
+     */
     public RemotingCommand waitResponse(final long timeoutMillis) throws InterruptedException {
+        //使用countDownLatch等待，直到有线程调用countDown
         this.countDownLatch.await(timeoutMillis, TimeUnit.MILLISECONDS);
         return this.responseCommand;
     }
 
+    /**
+     * 设置远程响应命令，并唤醒等待线程
+     *
+     * @param responseCommand 响应命令
+     */
     public void putResponse(final RemotingCommand responseCommand) {
+        //设置响应命令
         this.responseCommand = responseCommand;
+        //唤醒等待线程
         this.countDownLatch.countDown();
     }
 

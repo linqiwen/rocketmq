@@ -91,6 +91,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private final InternalLogger log = ClientLogger.getLog();
     private final Random random = new Random();
     private final DefaultMQProducer defaultMQProducer;
+    /**
+     * 主题发布信息Map，key:topic,value:TopicPublishInfo
+     */
     private final ConcurrentMap<String/* topic */, TopicPublishInfo> topicPublishInfoTable =
         new ConcurrentHashMap<String, TopicPublishInfo>();
     private final ArrayList<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
@@ -104,7 +107,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
 
+    /**
+     * 异步发送任务队列
+     */
     private final BlockingQueue<Runnable> asyncSenderThreadPoolQueue;
+    /**
+     * 默认异步执行器
+     */
     private final ExecutorService defaultAsyncSenderExecutor;
     private ExecutorService asyncSenderExecutor;
 
@@ -262,10 +271,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return topicList;
     }
 
+    /**
+     * 生产者订阅的主题数据是否需要更新
+     *
+     * @param topic 主题
+     * @return {@code true}生产者订阅的主题数据需要更新
+     */
     @Override
     public boolean isPublishTopicNeedUpdate(String topic) {
+        //获取到这个主题的数据信息
         TopicPublishInfo prev = this.topicPublishInfoTable.get(topic);
-
+        //主题为空，或者主题里的消息队列为空
         return null == prev || !prev.ok();
     }
 
@@ -407,6 +423,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 
+    /**
+     * 确认生产者服务状态
+     */
     private void makeSureStateOK() throws MQClientException {
         if (this.serviceState != ServiceState.RUNNING) {
             throw new MQClientException("The producer service state not OK, "
@@ -469,30 +488,35 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     /**
-     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout.
-     * A new one will be provided in next version
-     * @param msg
-     * @param sendCallback
-     * @param timeout the <code>sendCallback</code> will be invoked at most time
-     * @throws RejectedExecutionException
+     * 由于异常处理和错误的超时语义，它将在4.4.0中删除。下一个版本将提供一个新的
+     *
+     * @param msg 要发送的消息
+     * @param sendCallback 异步发送的回调函数
+     * @param timeout the <code>sendCallback</code> 任务被执行的最大时间
+     * @throws RejectedExecutionException 任务拒绝异常，线程池满
      */
     @Deprecated
     public void send(final Message msg, final SendCallback sendCallback, final long timeout)
         throws MQClientException, RemotingException, InterruptedException {
+        //放入任务的开始时间
         final long beginStartTime = System.currentTimeMillis();
+        //获取执行器
         ExecutorService executor = this.getAsyncSenderExecutor();
         try {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
+                    //任务开始执行和任务放入执行器的时间差值
                     long costTime = System.currentTimeMillis() - beginStartTime;
+                    //如果任务执行的最大时间大于任务开始执行和任务放入执行器的时间差值，发送消息
                     if (timeout > costTime) {
                         try {
                             sendDefaultImpl(msg, CommunicationMode.ASYNC, sendCallback, timeout - costTime);
                         } catch (Exception e) {
+                            //发送消息的过程中出现异常，执行sendCallback.onException
                             sendCallback.onException(e);
                         }
-                    } else {
+                    } else {//任务开始执行和任务放入执行器的时间差值大于等于任务执行的最大时间，超时执行sendCallback.onException
                         sendCallback.onException(
                             new RemotingTooMuchRequestException("DEFAULT ASYNC send call timeout"));
                     }
@@ -514,12 +538,23 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.mqFaultStrategy.updateFaultItem(brokerName, currentLatency, isolation);
     }
 
+    /**
+     * 要发送的消息
+     *
+     * @param communicationMode 通信传输方式
+     * @param msg 消息
+     * @param sendCallback 回调接口
+     * @param timeout 发送消息的超时时间
+     *
+     * @return 发送结果
+     */
     private SendResult sendDefaultImpl(
         Message msg,
         final CommunicationMode communicationMode,
         final SendCallback sendCallback,
         final long timeout
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        //确认生产者服务状态
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 

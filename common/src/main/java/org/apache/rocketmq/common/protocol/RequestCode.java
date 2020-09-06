@@ -17,6 +17,9 @@
 
 package org.apache.rocketmq.common.protocol;
 
+/**
+ * 请求编码
+ */
 public class RequestCode {
 
     public static final int SEND_MESSAGE = 10;
@@ -59,6 +62,9 @@ public class RequestCode {
 
     public static final int CHECK_TRANSACTION_STATE = 39;
 
+    /**
+     * 通知消费者id改变code
+     */
     public static final int NOTIFY_CONSUMER_IDS_CHANGED = 40;
 
     public static final int LOCK_BATCH_MQ = 41;
@@ -79,6 +85,9 @@ public class RequestCode {
     public static final int REGISTER_BROKER = 103;
 
     public static final int UNREGISTER_BROKER = 104;
+    /**
+     * 获取topic的路由信息
+     */
     public static final int GET_ROUTEINTO_BY_TOPIC = 105;
 
     public static final int GET_BROKER_CLUSTER_INFO = 106;
@@ -131,6 +140,9 @@ public class RequestCode {
 
     public static final int CLEAN_EXPIRED_CONSUMEQUEUE = 306;
 
+    /**
+     * 获取消费者运行信息
+     */
     public static final int GET_CONSUMER_RUNNING_INFO = 307;
 
     public static final int QUERY_CORRECTION_OFFSET = 308;

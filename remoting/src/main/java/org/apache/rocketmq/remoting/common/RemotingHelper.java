@@ -30,19 +30,33 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
+/**
+ * 远程处理帮助程序
+ */
 public class RemotingHelper {
     public static final String ROCKETMQ_REMOTING = "RocketmqRemoting";
+    /**
+     * 默认字符
+     */
     public static final String DEFAULT_CHARSET = "UTF-8";
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
 
+    /**
+     * 异常情况的简单描述
+     *
+     * @param e 异常
+     * @return 异常情况的简单描述串
+     */
     public static String exceptionSimpleDesc(final Throwable e) {
         StringBuffer sb = new StringBuffer();
         if (e != null) {
+            //异常信息
             sb.append(e.toString());
-
+            //获取异常的堆栈信息
             StackTraceElement[] stackTrace = e.getStackTrace();
             if (stackTrace != null && stackTrace.length > 0) {
+                //将异常的第一个堆栈信息加入到串中
                 StackTraceElement elment = stackTrace[0];
                 sb.append(", ");
                 sb.append(elment.toString());
@@ -52,6 +66,9 @@ public class RemotingHelper {
         return sb.toString();
     }
 
+    /**
+     * 将字符串转成SocketAddress，addr使用ip:port
+     */
     public static SocketAddress string2SocketAddress(final String addr) {
         String[] s = addr.split(":");
         InetSocketAddress isa = new InetSocketAddress(s[0], Integer.parseInt(s[1]));
@@ -150,6 +167,9 @@ public class RemotingHelper {
         }
     }
 
+    /**
+     * 解析通道远程地址
+     */
     public static String parseChannelRemoteAddr(final Channel channel) {
         if (null == channel) {
             return "";

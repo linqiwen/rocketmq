@@ -51,6 +51,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * broker客户端
+ */
 public class Broker2Client {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
@@ -80,20 +83,30 @@ public class Broker2Client {
         return this.brokerController.getRemotingServer().invokeSync(channel, request, 10000);
     }
 
+    /**
+     * 消费者改动，如消费者组新增新的消费者
+     *
+     * @param channel 消费者通道
+     * @param consumerGroup 消费者组
+     */
     public void notifyConsumerIdsChanged(
         final Channel channel,
         final String consumerGroup) {
+        //如果消费者组为空，直接返回
         if (null == consumerGroup) {
             log.error("notifyConsumerIdsChanged consumerGroup is null");
             return;
         }
-
+        //构造自定义头部
         NotifyConsumerIdsChangedRequestHeader requestHeader = new NotifyConsumerIdsChangedRequestHeader();
+        //将消费者组名称加入到头部中
         requestHeader.setConsumerGroup(consumerGroup);
+        //创建请求
         RemotingCommand request =
             RemotingCommand.createRequestCommand(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, requestHeader);
 
         try {
+            //往channel中发送单向消息
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 10);
         } catch (Exception e) {
             log.error("notifyConsumerIdsChanged exception, " + consumerGroup, e.getMessage());

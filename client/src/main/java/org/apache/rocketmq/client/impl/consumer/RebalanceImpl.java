@@ -55,7 +55,7 @@ public abstract class RebalanceImpl {
 
     /**
      * key：MessageQueue->消息队列，1个topic多个队列
-     * value：ProcessQueue->
+     * value：ProcessQueue->队列消费快照
      */
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
 
@@ -257,12 +257,21 @@ public abstract class RebalanceImpl {
         }
     }
 
+    /**
+     * 对消费者队列进行重新分配
+     *
+     * @param isOrder 消费是否有序
+     */
     public void doRebalance(final boolean isOrder) {
+        //获取主题的订阅信息
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
+            //遍历每个主题的订阅信息
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
+                //主题
                 final String topic = entry.getKey();
                 try {
+                    //根据主题进行重新分配消息队列
                     this.rebalanceByTopic(topic, isOrder);
                 } catch (Throwable e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -281,8 +290,11 @@ public abstract class RebalanceImpl {
 
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
+            //判断消息的模式是广播还是集群
             case BROADCASTING: {
+                //获取到topic下的所有消息队列
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+                //如果topic下的消息队列不为空
                 if (mqSet != null) {
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
                     if (changed) {

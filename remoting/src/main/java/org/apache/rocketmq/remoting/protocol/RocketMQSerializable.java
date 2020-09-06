@@ -22,6 +22,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+/**
+ * RocketMQ序列化
+ */
 public class RocketMQSerializable {
     private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
@@ -73,12 +76,17 @@ public class RocketMQSerializable {
         return headerBuffer.array();
     }
 
+    /**
+     * 将HashMap编码为字节数组
+     */
     public static byte[] mapSerialize(HashMap<String, String> map) {
         // keySize+key+valSize+val
         if (null == map || map.isEmpty())
             return null;
 
+        //总长度
         int totalLength = 0;
+        //key和value长度
         int kvLength;
         Iterator<Map.Entry<String, String>> it = map.entrySet().iterator();
         while (it.hasNext()) {
@@ -114,6 +122,13 @@ public class RocketMQSerializable {
         return content.array();
     }
 
+    /**
+     * 计算总长度
+     *
+     * @param remark 提示长度
+     * @param ext 扩展属性长度
+     * @return 总长度
+     */
     private static int calTotalLen(int remark, int ext) {
         // int code(~32767)
         int length = 2
@@ -133,30 +148,39 @@ public class RocketMQSerializable {
         return length;
     }
 
+    /**
+     * rocketMq协议解码
+     *
+     * @param headerArray 头字节内容
+     * @return 远程命令
+     */
     public static RemotingCommand rocketMQProtocolDecode(final byte[] headerArray) {
         RemotingCommand cmd = new RemotingCommand();
         ByteBuffer headerBuffer = ByteBuffer.wrap(headerArray);
-        // int code(~32767)
+        // int code(~32767)，前两个字节为请求类型编码
         cmd.setCode(headerBuffer.getShort());
-        // LanguageCode language
+        // LanguageCode language，一个字节请求客户端语言编码
         cmd.setLanguage(LanguageCode.valueOf(headerBuffer.get()));
-        // int version(~32767)
+        // int version(~32767)，两个字节请求命令的版本号
         cmd.setVersion(headerBuffer.getShort());
-        // int opaque
+        // int opaque，四个字节的请求id
         cmd.setOpaque(headerBuffer.getInt());
-        // int flag
+        // int flag，四个字节的标识，主要是用来计算是响应还是请求命令
         cmd.setFlag(headerBuffer.getInt());
-        // String remark
+        // String remark，四个字节的提示长度
         int remarkLength = headerBuffer.getInt();
         if (remarkLength > 0) {
+            //存在提示，获取四个字节的提示内容
             byte[] remarkContent = new byte[remarkLength];
             headerBuffer.get(remarkContent);
             cmd.setRemark(new String(remarkContent, CHARSET_UTF8));
         }
 
+        //四个字节的扩展字段长度
         // HashMap<String, String> extFields
         int extFieldsLength = headerBuffer.getInt();
         if (extFieldsLength > 0) {
+            //存在扩展字段，获取四个字节的扩展字段内容
             byte[] extFieldsBytes = new byte[extFieldsLength];
             headerBuffer.get(extFieldsBytes);
             cmd.setExtFields(mapDeserialize(extFieldsBytes));
@@ -164,6 +188,12 @@ public class RocketMQSerializable {
         return cmd;
     }
 
+    /**
+     * 将字节数组解码为HashMap
+     *
+     * @param bytes 字节数组
+     * @return hashMap内容
+     */
     public static HashMap<String, String> mapDeserialize(byte[] bytes) {
         if (bytes == null || bytes.length <= 0)
             return null;
@@ -176,19 +206,28 @@ public class RocketMQSerializable {
         int valSize;
         byte[] valContent;
         while (byteBuffer.hasRemaining()) {
+            //2字节的key长度
             keySize = byteBuffer.getShort();
+            //keySize字节的key内容
             keyContent = new byte[keySize];
             byteBuffer.get(keyContent);
-
+            //4字节的value长度
             valSize = byteBuffer.getInt();
+            //valSize字节的value内容
             valContent = new byte[valSize];
             byteBuffer.get(valContent);
-
+            //将value
             map.put(new String(keyContent, CHARSET_UTF8), new String(valContent, CHARSET_UTF8));
         }
         return map;
     }
 
+    /**
+     * 判断字符串是否为Null或空串
+     *
+     * @param str 字符串
+     * @return {@code true}字符串为Null或空串
+     */
     public static boolean isBlank(String str) {
         int strLen;
         if (str == null || (strLen = str.length()) == 0) {

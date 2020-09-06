@@ -25,33 +25,108 @@ import java.util.HashSet;
  * </p>
  */
 public class MessageConst {
+    /**
+     * 消息keys
+     */
     public static final String PROPERTY_KEYS = "KEYS";
+    /**
+     * 消息tags
+     */
     public static final String PROPERTY_TAGS = "TAGS";
+    /**
+     * 是否等待消息被存储成功
+     */
     public static final String PROPERTY_WAIT_STORE_MSG_OK = "WAIT";
+    /**
+     * 延迟消息的等级
+     */
     public static final String PROPERTY_DELAY_TIME_LEVEL = "DELAY";
+    /**
+     * 重试topic
+     */
     public static final String PROPERTY_RETRY_TOPIC = "RETRY_TOPIC";
+    /**
+     * 真正的topic
+     */
     public static final String PROPERTY_REAL_TOPIC = "REAL_TOPIC";
+    /**
+     * 真正的队列id
+     */
     public static final String PROPERTY_REAL_QUEUE_ID = "REAL_QID";
+    /**
+     * 事务消息
+     */
     public static final String PROPERTY_TRANSACTION_PREPARED = "TRAN_MSG";
+    /**
+     * 生产组
+     */
     public static final String PROPERTY_PRODUCER_GROUP = "PGROUP";
+    /**
+     * 最小的消息偏移量
+     */
     public static final String PROPERTY_MIN_OFFSET = "MIN_OFFSET";
+    /**
+     * 最大的消息偏移量
+     */
     public static final String PROPERTY_MAX_OFFSET = "MAX_OFFSET";
     public static final String PROPERTY_BUYER_ID = "BUYER_ID";
+    /**
+     * 原消息id
+     */
     public static final String PROPERTY_ORIGIN_MESSAGE_ID = "ORIGIN_MESSAGE_ID";
+    /**
+     * 事务标识
+     */
     public static final String PROPERTY_TRANSFER_FLAG = "TRANSFER_FLAG";
+    /**
+     * 修正标识
+     */
     public static final String PROPERTY_CORRECTION_FLAG = "CORRECTION_FLAG";
+    /**
+     * 消息标识
+     */
     public static final String PROPERTY_MQ2_FLAG = "MQ2_FLAG";
+    /**
+     * 消息重试次数
+     */
     public static final String PROPERTY_RECONSUME_TIME = "RECONSUME_TIME";
+    /**
+     *
+     */
     public static final String PROPERTY_MSG_REGION = "MSG_REGION";
+    /**
+     * 跟踪开关
+     */
     public static final String PROPERTY_TRACE_SWITCH = "TRACE_ON";
+    /**
+     * 消息唯一key
+     */
     public static final String PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX = "UNIQ_KEY";
+    /**
+     * 最大重试次数
+     */
     public static final String PROPERTY_MAX_RECONSUME_TIMES = "MAX_RECONSUME_TIMES";
+    /**
+     * 消费开始时间
+     */
     public static final String PROPERTY_CONSUME_START_TIMESTAMP = "CONSUME_START_TIME";
+    /**
+     *
+     */
     public static final String PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET = "TRAN_PREPARED_QUEUE_OFFSET";
+    /**
+     * 事务回查次数
+     */
     public static final String PROPERTY_TRANSACTION_CHECK_TIMES = "TRANSACTION_CHECK_TIMES";
     public static final String PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS = "CHECK_IMMUNITY_TIME_IN_SECONDS";
+    /**
+     * 实例Id
+     */
     public static final String PROPERTY_INSTANCE_ID = "INSTANCE_ID";
 
+    /**
+     * key分割
+     */
     public static final String KEY_SEPARATOR = " ";
 
     public static final HashSet<String> STRING_HASH_SET = new HashSet<String>();

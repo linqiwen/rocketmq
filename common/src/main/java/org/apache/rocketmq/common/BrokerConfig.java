@@ -95,6 +95,9 @@ public class BrokerConfig {
 
     private long shortPollingTimeMills = 1000;
 
+    /**
+     * 组中消费者改变事件通知开关
+     */
     private boolean notifyConsumerIdsChangedEnable = true;
 
     private boolean highSpeedMode = false;
@@ -169,7 +172,7 @@ public class BrokerConfig {
     private int transactionCheckMax = 15;
 
     /**
-     * Transaction message check interval.
+     * 事务消息检查间隔.
      */
     @ImportantField
     private long transactionCheckInterval = 60 * 1000;

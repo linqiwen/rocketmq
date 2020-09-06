@@ -51,38 +51,43 @@ import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
+/**
+ * netty远程抽象
+ */
 public abstract class NettyRemotingAbstract {
 
     /**
-     * Remoting logger instance.
+     * 远程日志实例.
      */
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
     /**
-     * Semaphore to limit maximum number of on-going one-way requests, which protects system memory footprint.
+     * 限制正在进行的单向请求的最大数量的信号量，这可以保护系统内存占用.
      */
     protected final Semaphore semaphoreOneway;
 
     /**
-     * Semaphore to limit maximum number of on-going asynchronous requests, which protects system memory footprint.
+     * 限制正在进行的异步请求的最大数量的信号量，这可以保护系统内存占用.
      */
     protected final Semaphore semaphoreAsync;
 
     /**
-     * This map caches all on-going requests.
+     * 此映射缓存所有正在进行的请求.
+     * key:请求id，value：响应future
+     * 使用此map进行同步发送消息等待，响应后被唤醒
      */
     protected final ConcurrentMap<Integer /* opaque */, ResponseFuture> responseTable =
         new ConcurrentHashMap<Integer, ResponseFuture>(256);
 
     /**
-     * This container holds all processors per request code, aka, for each incoming request, we may look up the
-     * responding processor in this map to handle the request.
+     * 这个容器包含每个请求代码的所有处理器，对于每个传入的请求，
+     * 我们可以在这个映射中查找响应处理器来处理请求
      */
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
         new HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>>(64);
 
     /**
-     * Executor to feed netty events to user defined {@link ChannelEventListener}.
+     * 将netty事件提供给用户定义的{@link ChannelEventListener}的执行器.
      */
     protected final NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
 
@@ -97,7 +102,7 @@ public abstract class NettyRemotingAbstract {
     protected volatile SslContext sslContext;
 
     /**
-     * custom rpc hooks
+     * 自定义RPC钩子集合
      */
     protected List<RPCHook> rpcHooks = new ArrayList<RPCHook>();
 
@@ -126,38 +131,42 @@ public abstract class NettyRemotingAbstract {
     public abstract ChannelEventListener getChannelEventListener();
 
     /**
-     * Put a netty event to the executor.
+     * 把netty事件交给执行器
      *
-     * @param event Netty event instance.
+     * @param event netty事件实例
      */
     public void putNettyEvent(final NettyEvent event) {
+        //将netty事件交给执行器
         this.nettyEventExecutor.putNettyEvent(event);
     }
 
     /**
-     * Entry of incoming command processing.
+     * 输入命令处理.
      *
      * <p>
-     * <strong>Note:</strong>
-     * The incoming remoting command may be
+     * <strong>注意:</strong>
+     * 传入的远程处理命令可能是
      * <ul>
-     * <li>An inquiry request from a remote peer component;</li>
-     * <li>A response to a previous request issued by this very participant.</li>
+     * <li>来自远程服务的查询请求;</li>
+     * <li>对这个参与者之前发出的请求的响应.</li>
      * </ul>
      * </p>
      *
-     * @param ctx Channel handler context.
-     * @param msg incoming remoting command.
-     * @throws Exception if there were any error while processing the incoming command.
+     * @param ctx 通道处理程序上下文.
+     * @param msg 传入远程处理命令.
+     * @throws Exception 如果在处理传入命令时出现任何错误.
      */
     public void processMessageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
         final RemotingCommand cmd = msg;
         if (cmd != null) {
+            //获取命令的请求类型
             switch (cmd.getType()) {
                 case REQUEST_COMMAND:
+                    //处理请求命令
                     processRequestCommand(ctx, cmd);
                     break;
                 case RESPONSE_COMMAND:
+                    //处理响应命令
                     processResponseCommand(ctx, cmd);
                     break;
                 default:
@@ -166,6 +175,9 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    /**
+     *
+     */
     protected void doBeforeRpcHooks(String addr, RemotingCommand request) {
         if (rpcHooks.size() > 0) {
             for (RPCHook rpcHook: rpcHooks) {
@@ -184,30 +196,40 @@ public abstract class NettyRemotingAbstract {
 
 
     /**
-     * Process incoming request command issued by remote peer.
+     * 处理远程对等方发出的传入请求命令.
      *
-     * @param ctx channel handler context.
-     * @param cmd request command.
+     * @param ctx 通道处理程序上下文.
+     * @param cmd 请求命令.
      */
     public void processRequestCommand(final ChannelHandlerContext ctx, final RemotingCommand cmd) {
+        //获取请求命令编码的对等处理器和线程池
         final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode());
+        //如果请求命令编码的对等处理器和线程池不存在使用默认的请求处理器
         final Pair<NettyRequestProcessor, ExecutorService> pair = null == matched ? this.defaultRequestProcessor : matched;
+        //获取请求id
         final int opaque = cmd.getOpaque();
 
         if (pair != null) {
+            //创建任务
             Runnable run = new Runnable() {
                 @Override
                 public void run() {
                     try {
+                        //请求处理之前执行钩子方法
                         doBeforeRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
+                        //处理请求
                         final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
+                        //请求处理之后执行钩子方法
                         doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
-
-                        if (!cmd.isOnewayRPC()) {
+                        //判读是否是单向请求，如果是单向请求不做任何处理
+                        if (!cmd.isOnewayRPC()) {//不是单向请求
                             if (response != null) {
+                                //将远端的请求id，返回回去，主要是用来唤醒阻塞的线程或者执行回调方法
                                 response.setOpaque(opaque);
+                                //标记当前命令是响应命令
                                 response.markResponseType();
                                 try {
+                                    //发送消息
                                     ctx.writeAndFlush(response);
                                 } catch (Throwable e) {
                                     log.error("process request over, but response failed", e);
@@ -215,54 +237,72 @@ public abstract class NettyRemotingAbstract {
                                     log.error(response.toString());
                                 }
                             } else {
-
+                                //如果响应命令为空不做任何处理
                             }
                         }
                     } catch (Throwable e) {
                         log.error("process request exception", e);
                         log.error(cmd.toString());
-
+                        //如果出现异常，并且不是单向请求，构造系统异常的响应命令
                         if (!cmd.isOnewayRPC()) {
+                            //
                             final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
                                 RemotingHelper.exceptionSimpleDesc(e));
+                            //将远端的请求id，返回回去，主要是用来唤醒阻塞的线程或者执行回调方法
                             response.setOpaque(opaque);
+                            //发送命令
                             ctx.writeAndFlush(response);
                         }
                     }
                 }
             };
 
+            //处理器是否拒绝请求，如果系统过于繁忙，处理器会拒绝请求
             if (pair.getObject1().rejectRequest()) {
+                //构造系统繁忙命令
                 final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
                     "[REJECTREQUEST]system busy, start flow control for a while");
+                //将远端的请求id，返回回去，主要是用来唤醒阻塞的线程或者执行回调方法
                 response.setOpaque(opaque);
+                //发送命令
                 ctx.writeAndFlush(response);
                 return;
             }
 
             try {
+                //创建请求任务
                 final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
+                //将请求任务提交到线程池中
                 pair.getObject2().submit(requestTask);
-            } catch (RejectedExecutionException e) {
+            } catch (RejectedExecutionException e) {//如果线程池满（队列满，并且线程池中的线程数大于等于最大线程数）
+                //每隔10秒记录下日志
                 if ((System.currentTimeMillis() % 10000) == 0) {
+                    //打印日志
                     log.warn(RemotingHelper.parseChannelRemoteAddr(ctx.channel())
                         + ", too many requests and system thread pool busy, RejectedExecutionException "
                         + pair.getObject2().toString()
                         + " request code: " + cmd.getCode());
                 }
-
+                //判读是否单向请求
                 if (!cmd.isOnewayRPC()) {
+                    //如果不是单向请求，响应系统繁忙命令
                     final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
                         "[OVERLOAD]system busy, start flow control for a while");
+                    //将远端的请求id，返回回去，主要是用来唤醒阻塞的线程或者执行回调方法
                     response.setOpaque(opaque);
+                    //发送命令
                     ctx.writeAndFlush(response);
                 }
             }
         } else {
+            //请求的编码不支持
             String error = " request type " + cmd.getCode() + " not supported";
+            //响应系统不支持此请求编码，构造远程命令
             final RemotingCommand response =
                 RemotingCommand.createResponseCommand(RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
+            //将远端的请求id，返回回去，主要是用来唤醒阻塞的线程或者执行回调方法
             response.setOpaque(opaque);
+            //发送命令
             ctx.writeAndFlush(response);
             log.error(RemotingHelper.parseChannelRemoteAddr(ctx.channel()) + error);
         }
@@ -367,7 +407,7 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * <p>
-     * This method is periodically invoked to scan and expire deprecated request.
+     *      定期调用此方法来扫描已否决的请求并使其过期
      * </p>
      */
     public void scanResponseTable() {
@@ -394,9 +434,17 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    /**
+     * 同步发送消息
+     *
+     * @param channel 通道
+     * @param request 请求命令
+     * @param timeoutMillis 同步调用的超时参数
+     */
     public RemotingCommand invokeSyncImpl(final Channel channel, final RemotingCommand request,
         final long timeoutMillis)
         throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException {
+        //请求id
         final int opaque = request.getOpaque();
 
         try {
@@ -520,28 +568,36 @@ public abstract class NettyRemotingAbstract {
     public void invokeOnewayImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         request.markOnewayRPC();
+        //尝试获取信号量
         boolean acquired = this.semaphoreOneway.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
+        //获取信号量成功
         if (acquired) {
+            //信号量只释放一次，幂等操作
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreOneway);
             try {
+                //发送命令，并注册操作完成监听器
                 channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture f) throws Exception {
+                        //释放信号量
                         once.release();
+                        //如果发送失败，发送命令失败，记录日志
                         if (!f.isSuccess()) {
                             log.warn("send a request command to channel <" + channel.remoteAddress() + "> failed.");
                         }
                     }
                 });
             } catch (Exception e) {
+                //释放信号量
                 once.release();
                 log.warn("write send a request command to channel <" + channel.remoteAddress() + "> failed.");
                 throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);
             }
         } else {
+            //如果超时时间小于0，表明系统比较繁忙，没有获取到信号量，直接报RemotingTooMuchRequestException
             if (timeoutMillis <= 0) {
                 throw new RemotingTooMuchRequestException("invokeOnewayImpl invoke too fast");
-            } else {
+            } else {//如果超时时间大于0，表明一定的时间内没有获取到信号量，报超时异常
                 String info = String.format(
                     "invokeOnewayImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d",
                     timeoutMillis,
@@ -554,14 +610,25 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    /**
+     * netty事件执行器
+     */
     class NettyEventExecutor extends ServiceThread {
+        //存放事件队列
         private final LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<NettyEvent>();
+        //存放事件队列的最大大小
         private final int maxSize = 10000;
 
+        /**
+         * 存放netty事件
+         */
         public void putNettyEvent(final NettyEvent event) {
+            //存放事件队列中的元素小于最大的大小
             if (this.eventQueue.size() <= maxSize) {
+                //将netty事件加到队列中
                 this.eventQueue.add(event);
             } else {
+                //否则打印日志
                 log.warn("event queue size[{}] enough, so drop this event {}", this.eventQueue.size(), event.toString());
             }
         }
@@ -569,23 +636,30 @@ public abstract class NettyRemotingAbstract {
         @Override
         public void run() {
             log.info(this.getServiceName() + " service started");
-
+            //获取通道事件监听器
             final ChannelEventListener listener = NettyRemotingAbstract.this.getChannelEventListener();
 
             while (!this.isStopped()) {
                 try {
+                    //从事件队列获取事件
                     NettyEvent event = this.eventQueue.poll(3000, TimeUnit.MILLISECONDS);
+                    //如果事件和通道事件监听器不为空
                     if (event != null && listener != null) {
+                        //事件类型
                         switch (event.getType()) {
+                            //通道空闲事件
                             case IDLE:
                                 listener.onChannelIdle(event.getRemoteAddr(), event.getChannel());
                                 break;
+                            //通道关闭事件
                             case CLOSE:
                                 listener.onChannelClose(event.getRemoteAddr(), event.getChannel());
                                 break;
+                            //通道连接事件
                             case CONNECT:
                                 listener.onChannelConnect(event.getRemoteAddr(), event.getChannel());
                                 break;
+                            //通道异常事件
                             case EXCEPTION:
                                 listener.onChannelException(event.getRemoteAddr(), event.getChannel());
                                 break;

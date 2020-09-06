@@ -19,30 +19,72 @@ package org.apache.rocketmq.remoting.protocol;
 import com.alibaba.fastjson.JSON;
 import java.nio.charset.Charset;
 
+/**
+ * 远程序列化
+ */
 public abstract class RemotingSerializable {
+    /**
+     * 编码和解码的字符集编码
+     */
     private final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
+    /**
+     * 将对象编码成字节数组
+     *
+     * @param obj 要编码的对象
+     * @return 字节数组
+     */
     public static byte[] encode(final Object obj) {
+        //将对象转成字节json串
         final String json = toJson(obj, false);
         if (json != null) {
+            //将json串转成字节数组
             return json.getBytes(CHARSET_UTF8);
         }
         return null;
     }
 
+    /**
+     * 将对象转成json串
+     *
+     * @param obj 需要转成json串对象
+     * @param prettyFormat 是否需要格式化
+     * @return 对象json串
+     */
     public static String toJson(final Object obj, boolean prettyFormat) {
         return JSON.toJSONString(obj, prettyFormat);
     }
 
+    /**
+     * 将字节数组转成对象
+     *
+     * @param data 字节数组
+     * @param classOfT 对象类型
+     * @return classOfT实例
+     */
     public static <T> T decode(final byte[] data, Class<T> classOfT) {
+        //将字节数组转成json串
         final String json = new String(data, CHARSET_UTF8);
+        //将json串转成对象
         return fromJson(json, classOfT);
     }
 
+    /**
+     * 将json串转成T对象
+     *
+     * @param json json串
+     * @param classOfT T类型
+     * @return T对象
+     */
     public static <T> T fromJson(String json, Class<T> classOfT) {
         return JSON.parseObject(json, classOfT);
     }
 
+    /**
+     * 编码
+     *
+     * @return 自身对象的字节数组
+     */
     public byte[] encode() {
         final String json = this.toJson();
         if (json != null) {

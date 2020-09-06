@@ -18,16 +18,50 @@ package org.apache.rocketmq.common;
 
 import org.apache.rocketmq.common.constant.PermName;
 
+/**
+ * 主题配置
+ */
 public class TopicConfig {
+    /**
+     * 分隔符
+     */
     private static final String SEPARATOR = " ";
+    /**
+     * 默认的读队列数
+     */
     public static int defaultReadQueueNums = 16;
+    /**
+     * 默认的写队列数
+     */
     public static int defaultWriteQueueNums = 16;
+    /**
+     * 主题名称
+     */
     private String topicName;
+    /**
+     * 读队列数
+     */
     private int readQueueNums = defaultReadQueueNums;
+    /**
+     * 写队列数
+     */
     private int writeQueueNums = defaultWriteQueueNums;
+
+    /**
+     * topic权限
+     */
     private int perm = PermName.PERM_READ | PermName.PERM_WRITE;
+    /**
+     * 主题过滤类型，单标签、多标签
+     */
     private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG;
+    /**
+     * 主题系统标识
+     */
     private int topicSysFlag = 0;
+    /**
+     * 主题是否有序
+     */
     private boolean order = false;
 
     public TopicConfig() {
@@ -44,37 +78,54 @@ public class TopicConfig {
         this.perm = perm;
     }
 
+    /**
+     * 对主题配置进行编码成字节数组
+     */
     public String encode() {
         StringBuilder sb = new StringBuilder();
+        //主题名称
         sb.append(this.topicName);
+        //分隔符
         sb.append(SEPARATOR);
+        //读队列数目
         sb.append(this.readQueueNums);
+        //分隔符
         sb.append(SEPARATOR);
+        //写队列数目
         sb.append(this.writeQueueNums);
+        //分隔符
         sb.append(SEPARATOR);
+        //topic权限
         sb.append(this.perm);
+        //分隔符
         sb.append(SEPARATOR);
+        //主题过滤类型，单标签、多标签
         sb.append(this.topicFilterType);
 
         return sb.toString();
     }
 
+    /**
+     * 解码，将字符串转成主题的配置信息
+     */
     public boolean decode(final String in) {
+        //将字符串通过分隔符进行分割
         String[] strs = in.split(SEPARATOR);
         if (strs != null && strs.length == 5) {
+            //主题名称
             this.topicName = strs[0];
-
+            //读队列数目
             this.readQueueNums = Integer.parseInt(strs[1]);
-
+            //写队列数目
             this.writeQueueNums = Integer.parseInt(strs[2]);
-
+            //topic权限
             this.perm = Integer.parseInt(strs[3]);
-
+            //主题过滤类型，单标签、多标签
             this.topicFilterType = TopicFilterType.valueOf(strs[4]);
-
+            //解码成功
             return true;
         }
-
+        //解码失败
         return false;
     }
 

@@ -45,6 +45,10 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
      * topic主题
      */
     private String topic;
+
+    /**
+     * 子表达式
+     */
     private String subString;
 
     /**

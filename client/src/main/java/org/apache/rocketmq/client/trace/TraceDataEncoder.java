@@ -101,7 +101,7 @@ public class TraceDataEncoder {
     }
 
     /**
-     * Encoding the trace context into data strings and keyset sets
+     * 编码跟踪上下文数据和keySet成字符串
      *
      * @param ctx 跟踪上下文
      * @return 跟踪传输bean
@@ -110,50 +110,79 @@ public class TraceDataEncoder {
         if (ctx == null) {
             return null;
         }
-        //build message trace of the transfering entity content bean
+        //构建转让的消息跟踪实体bean的内容
         TraceTransferBean transferBean = new TraceTransferBean();
         StringBuilder sb = new StringBuilder(256);
         switch (ctx.getTraceType()) {
             case Pub: {
                 TraceBean bean = ctx.getTraceBeans().get(0);
-                //append the content of context and traceBean to transferBean's TransData
+                //附加上下文的内容和跟踪Bean到传输数据中
+                //添加跟踪类型
                 sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加当前时间戳
                     .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加broker所在的区域ID
                     .append(ctx.getRegionId()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加生产组的名称
                     .append(ctx.getGroupName()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加消息主题
                     .append(bean.getTopic()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加消息的msgId
                     .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加消息的tags
                     .append(bean.getTags()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加消息的keys
                     .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加存储该消息的Broker服务器IP
                     .append(bean.getStoreHost()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加消息的内容长度
                     .append(bean.getBodyLength()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加消息的耗费时间
                     .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加消息类型
                     .append(bean.getMsgType().ordinal()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加消息偏移量
                     .append(bean.getOffsetMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
+                    //添加是否消费成功
                     .append(ctx.isSuccess()).append(TraceConstants.FIELD_SPLITOR);
             }
             break;
             case SubBefore: {
                 for (TraceBean bean : ctx.getTraceBeans()) {
+                    //添加跟踪类型
                     sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加当前时间戳
                         .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加broker所在的区域ID
                         .append(ctx.getRegionId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加消费组的名称
                         .append(ctx.getGroupName()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加消费端的请求id
                         .append(ctx.getRequestId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加消息的msgId
                         .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加消费者的重试次数
                         .append(bean.getRetryTimes()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加消息的keys
                         .append(bean.getKeys()).append(TraceConstants.FIELD_SPLITOR);//
                 }
             }
             break;
             case SubAfter: {
                 for (TraceBean bean : ctx.getTraceBeans()) {
+                    //添加跟踪类型
                     sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加消费端的请求id
                         .append(ctx.getRequestId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加消息的msgId
                         .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加耗费的时间
                         .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加消费是否成功
                         .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加消息的keys
                         .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
+                        //添加消息消费的状态码
                         .append(ctx.getContextCode()).append(TraceConstants.FIELD_SPLITOR);
                 }
             }

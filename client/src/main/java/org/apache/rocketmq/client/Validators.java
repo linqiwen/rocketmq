@@ -35,7 +35,11 @@ public class Validators {
     public static final int CHARACTER_MAX_LENGTH = 255;
 
     /**
-     * @return The resulting {@code String}
+     * 传入原串，返回正则匹配的串
+     *
+     * @param origin 原串
+     * @param patternStr 正则表达式
+     * @return 返回正则匹配的串 {@code String}
      */
     public static String getGroupWithRegularExpression(String origin, String patternStr) {
         Pattern pattern = Pattern.compile(patternStr);
@@ -47,24 +51,27 @@ public class Validators {
     }
 
     /**
-     * Validate group
+     * 验证group
      */
     public static void checkGroup(String group) throws MQClientException {
+        //检验组是否为空
         if (UtilAll.isBlank(group)) {
             throw new MQClientException("the specified group is blank", null);
         }
+        //检验组是否含有非法字符
         if (!regularExpressionMatcher(group, PATTERN)) {
             throw new MQClientException(String.format(
                 "the specified group[%s] contains illegal characters, allowing only %s", group,
                 VALID_PATTERN_STR), null);
         }
+        //验证group长度是否大于允许的最大长度
         if (group.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("the specified group is longer than group max length 255.", null);
         }
     }
 
     /**
-     * @return <tt>true</tt> if, and only if, the entire origin sequence matches this matcher's pattern
+     * @return <tt>true</tt> 仅当整个原点序列与匹配器的模式匹配
      */
     public static boolean regularExpressionMatcher(String origin, Pattern pattern) {
         if (pattern == null) {
@@ -75,25 +82,28 @@ public class Validators {
     }
 
     /**
-     * Validate message
+     * 验证消息
+     *
+     * @param msg 消息
      */
     public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
         throws MQClientException {
+        //检验消息是否为空
         if (null == msg) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
-        // topic
+        // topic，检验主题
         Validators.checkTopic(msg.getTopic());
 
-        // body
+        // body，检验消息内容是否为空
         if (null == msg.getBody()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");
         }
-
+        //检验消息内容是否为空串
         if (0 == msg.getBody().length) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body length is zero");
         }
-
+        //检验消息内容是否大于允许的最大消息大小（字节）
         if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
                 "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
@@ -101,24 +111,25 @@ public class Validators {
     }
 
     /**
-     * Validate topic
+     * 验证topic
      */
     public static void checkTopic(String topic) throws MQClientException {
+        //检验主题是否为空
         if (UtilAll.isBlank(topic)) {
             throw new MQClientException("The specified topic is blank", null);
         }
-
+        //检验主题是否含有非法字符
         if (!regularExpressionMatcher(topic, PATTERN)) {
             throw new MQClientException(String.format(
                 "The specified topic[%s] contains illegal characters, allowing only %s", topic,
                 VALID_PATTERN_STR), null);
         }
-
+        //验证主题长度是否大于允许的最大长度
         if (topic.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("The specified topic is longer than topic max length 255.", null);
         }
 
-        //whether the same with system reserved keyword
+        //检验主题是否与系统保留关键字相同
         if (topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
             throw new MQClientException(
                 String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", topic), null);

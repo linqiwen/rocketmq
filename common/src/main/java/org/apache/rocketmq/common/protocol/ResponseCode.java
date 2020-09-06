@@ -19,6 +19,9 @@ package org.apache.rocketmq.common.protocol;
 
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
+/**
+ * 请求的返回编码
+ */
 public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int FLUSH_DISK_TIMEOUT = 10;
@@ -35,6 +38,9 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int NO_PERMISSION = 16;
 
+    /**
+     * 主题不存在
+     */
     public static final int TOPIC_NOT_EXIST = 17;
     public static final int TOPIC_EXIST_ALREADY = 18;
     public static final int PULL_NOT_FOUND = 19;

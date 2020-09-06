@@ -126,6 +126,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.queueSize = 2048;
         // 批量大小
         this.batchSize = 100;
+        // 最大消息体
         this.maxMsgSize = 128000;
         this.discardCount = new AtomicLong(0L);
         this.traceContextQueue = new ArrayBlockingQueue<TraceContext>(1024);
@@ -321,7 +322,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 if (context.getTraceBeans().isEmpty()) {
                     continue;
                 }
-                // Topic value corresponding to original message entity content
+                // 原消息实体内容对应的topic
                 String topic = context.getTraceBeans().get(0).getTopic();
                 String regionId = context.getRegionId();
                 // Use  original message entity's topic as key
@@ -382,7 +383,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         }
 
         /**
-         * Send message trace data
+         * 发送消息跟踪数据
          *
          * @param keySet the keyset in this batch(including msgId in original message not offsetMsgId)
          * @param data the message trace data in this batch
