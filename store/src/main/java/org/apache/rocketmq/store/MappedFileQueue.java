@@ -73,10 +73,17 @@ public class MappedFileQueue {
             }
         }
     }
-
+    /**
+     * 根据时间获取MappedFile
+     *
+     * @param timestamp 时间戳
+     * @return MappedFile
+     */
     public MappedFile getMappedFileByTime(final long timestamp) {
+        //获取mappedFiles数组
         Object[] mfs = this.copyMappedFiles(0);
 
+        //mappedFiles数组为空返回null
         if (null == mfs)
             return null;
 
@@ -237,11 +244,16 @@ public class MappedFileQueue {
         return getLastMappedFile(startOffset, true);
     }
 
+    /**
+     * 获取最后一个映射文件
+     */
     public MappedFile getLastMappedFile() {
         MappedFile mappedFileLast = null;
 
+        //如果映射文件列表不为空
         while (!this.mappedFiles.isEmpty()) {
             try {
+                //获取最后一个映射文件
                 mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1);
                 break;
             } catch (IndexOutOfBoundsException e) {
@@ -299,9 +311,14 @@ public class MappedFileQueue {
         return -1;
     }
 
+    /**
+     * 获取最大偏移量
+     */
     public long getMaxOffset() {
+        //获取最新的映射文件
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {
+            //起始偏移量加上当前读的位置
             return mappedFile.getFileFromOffset() + mappedFile.getReadPosition();
         }
         return 0;
@@ -453,18 +470,22 @@ public class MappedFileQueue {
     }
 
     /**
-     * Finds a mapped file by offset.
+     * 根据消息偏移量查询映射文件
      *
-     * @param offset Offset.
-     * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
-     * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
+     * @param offset 偏移量.
+     * @param returnFirstOnNotFound {@code true}如果找不到映射文件，则返回第一个文件
+     * @return 映射文件或者null (当找不到映射文件并且returnFirstOnNotFound is <code>false</code>).
      */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
+            //获取第一个映射文件
             MappedFile firstMappedFile = this.getFirstMappedFile();
+            //获取最后一个映射文件
             MappedFile lastMappedFile = this.getLastMappedFile();
             if (firstMappedFile != null && lastMappedFile != null) {
+                //如果传入进来的偏移量小于第一个映射文件的起始偏移量或大于最后一个文件
                 if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) {
+                    //打印日志
                     LOG_ERROR.warn("Offset not matched. Request offset: {}, firstOffset: {}, lastOffset: {}, mappedFileSize: {}, mappedFiles count: {}",
                         offset,
                         firstMappedFile.getFileFromOffset(),
@@ -472,18 +493,22 @@ public class MappedFileQueue {
                         this.mappedFileSize,
                         this.mappedFiles.size());
                 } else {
+                    //获取MappedFile文件位置
                     int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
                     try {
+                        //获取MappedFile文件
                         targetFile = this.mappedFiles.get(index);
                     } catch (Exception ignored) {
                     }
 
+                    //要查询的消息偏移量在目标文件的偏移量范围内，返回目标文件
                     if (targetFile != null && offset >= targetFile.getFileFromOffset()
                         && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
                         return targetFile;
                     }
 
+                    //否则遍历所有的MappedFile文件，查询消息偏移量在目标文件的偏移量范围内
                     for (MappedFile tmpMappedFile : this.mappedFiles) {
                         if (offset >= tmpMappedFile.getFileFromOffset()
                             && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
@@ -493,6 +518,7 @@ public class MappedFileQueue {
                 }
 
                 if (returnFirstOnNotFound) {
+                    //返回第一个MappedFile文件
                     return firstMappedFile;
                 }
             }
@@ -503,11 +529,18 @@ public class MappedFileQueue {
         return null;
     }
 
+    /**
+     * 获取第一个映射文件
+     *
+     * @return 第一个映射文件
+     */
     public MappedFile getFirstMappedFile() {
         MappedFile mappedFileFirst = null;
 
+        //如果映射文件列表不为空
         if (!this.mappedFiles.isEmpty()) {
             try {
+                //获取第一个映射文件
                 mappedFileFirst = this.mappedFiles.get(0);
             } catch (IndexOutOfBoundsException e) {
                 //ignore
@@ -519,6 +552,12 @@ public class MappedFileQueue {
         return mappedFileFirst;
     }
 
+    /**
+     * 根据消息偏移量查询映射文件
+     *
+     * @param offset 消息偏移量
+     * @return MappedFile文件
+     */
     public MappedFile findMappedFileByOffset(final long offset) {
         return findMappedFileByOffset(offset, false);
     }

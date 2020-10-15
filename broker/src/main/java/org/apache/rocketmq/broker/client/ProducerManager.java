@@ -282,10 +282,15 @@ public class ProducerManager {
     }
 
     /**
-     * 获取可用通道
+     * 获取可用生产者通道
+     *
+     * @param groupId 生产者组
+     * @return 可用的生产者通道，如果没有可用的生产者通道返回null
      */
     public Channel getAvaliableChannel(String groupId) {
+        //根据生产者组获取可用的生产者通道
         HashMap<Channel, ClientChannelInfo> channelClientChannelInfoHashMap = groupChannelTable.get(groupId);
+        //生产者组下所有可用的生产者通道
         List<Channel> channelList = new ArrayList<Channel>();
         if (channelClientChannelInfoHashMap != null) {
             for (Channel channel : channelClientChannelInfoHashMap.keySet()) {
@@ -297,16 +302,24 @@ public class ProducerManager {
                 return null;
             }
 
+            //正原子计数器，平均的获取通道
             int index = positiveAtomicCounter.incrementAndGet() % size;
             Channel channel = channelList.get(index);
             int count = 0;
+            //生产者通道是否活跃并且通道可写
             boolean isOk = channel.isActive() && channel.isWritable();
+            //获取可用通道的重试次数
             while (count++ < GET_AVALIABLE_CHANNEL_RETRY_COUNT) {
+                //生产者通道活跃并且通道可写
                 if (isOk) {
+                    //返回通道
                     return channel;
                 }
+                //获取下一个生产者通道
                 index = (++index) % size;
+                //获取通道
                 channel = channelList.get(index);
+                //生产者通道是否活跃并且通道可写
                 isOk = channel.isActive() && channel.isWritable();
             }
         } else {

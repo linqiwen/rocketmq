@@ -37,7 +37,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
  * <p>
  *     ConsumeQueue的作用
  *     1、通过broker保存的offset可以在ConsumeQueue中获取消息，从而快速的定位到commitLog的消息位置
- *     2、过滤tag是也是通过遍历ConsumeQueue来实现的（先比较hash(tag)符合条件的再到consumer比较tag原文）
+ *     2、过滤tag也是通过遍历ConsumeQueue来实现的（先比较hash(tag)符合条件的再到consumer比较tag原文）
  *     3、并且ConsumeQueue还能保存于操作系统的PageCache进行缓存提升检索性能
  * </p>
  * <p>
@@ -180,7 +180,14 @@ public class ConsumeQueue {
         }
     }
 
+    /**
+     * 按时间获取队列中的偏移量
+     *
+     * @param timestamp 时间戳
+     * @return 偏移量
+     */
     public long getOffsetInQueueByTime(final long timestamp) {
+        //根据时间获取MappedFile文件
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
             long offset = 0;
@@ -400,6 +407,12 @@ public class ConsumeQueue {
         }
     }
 
+    /**
+     * 获取队列的最小偏移量
+     * <p>
+     *     ConsumerQueue每一条记录固定20字节
+     * </p>
+     */
     public long getMinOffsetInQueue() {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
@@ -514,10 +527,13 @@ public class ConsumeQueue {
 
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
+        //每一条记录20个字节
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
         if (offset >= this.getMinLogicOffset()) {
+            //根据偏移量获取MappedFile文件
             MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
             if (mappedFile != null) {
+                //查询MappedBuffer结果实体
                 SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
                 return result;
             }
@@ -582,6 +598,15 @@ public class ConsumeQueue {
         return this.getMaxOffsetInQueue() - this.getMinOffsetInQueue();
     }
 
+    /**
+     * 获取队列中的最大偏移量
+     * <p>
+     *      MappedFile的偏移量都是累加的，从第一个文件开始进行累加
+     *      但是队列的偏移量都是从0开始，每条记录都是20字节，为此需要除于20
+     * </p>
+     *
+     * @return 消息队列的最大偏移量
+     */
     public long getMaxOffsetInQueue() {
         return this.mappedFileQueue.getMaxOffset() / CQ_STORE_UNIT_SIZE;
     }

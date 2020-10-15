@@ -125,6 +125,12 @@ public class NamespaceUtil {
             .toString();
     }
 
+    /**
+     * 从资源获取名称空间
+     *
+     * @param resource 资源
+     * @return 名称空间
+     */
     public static String getNamespaceFromResource(String resource) {
         if (StringUtils.isEmpty(resource) || isSystemResource(resource)) {
             return STRING_BLANK;

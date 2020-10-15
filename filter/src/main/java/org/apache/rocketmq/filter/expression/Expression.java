@@ -18,10 +18,10 @@
 package org.apache.rocketmq.filter.expression;
 
 /**
- * Interface of expression.
+ * 表达式接口
  * <p>
- * This class was taken from ActiveMQ org.apache.activemq.filter.Expression,
- * but the parameter is changed to an interface.
+ * 这个类取自ActiveMQ org.apache.activemq.filter.Expression,
+ * 但参数更改为接口
  * </p>
  *
  * @see org.apache.rocketmq.filter.expression.EvaluationContext
@@ -29,10 +29,10 @@ package org.apache.rocketmq.filter.expression;
 public interface Expression {
 
     /**
-     * Calculate express result with context.
+     * 使用上下文计算表达式结果
      *
-     * @param context context of evaluation
-     * @return the value of this expression
+     * @param context 计算的上下文
+     * @return 此表达式的值
      */
     Object evaluate(EvaluationContext context) throws Exception;
 }

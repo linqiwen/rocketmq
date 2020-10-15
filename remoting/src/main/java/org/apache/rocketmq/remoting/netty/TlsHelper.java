@@ -90,20 +90,27 @@ public class TlsHelper {
 
     public static SslContext buildSslContext(boolean forClient) throws IOException, CertificateException {
         File configFile = new File(TlsSystemConfig.tlsConfigFile);
+        //从配置文件中提取TLS配置
         extractTlsConfigFromFile(configFile);
+        //日志打印最后使用Tls配置
         logTheFinalUsedTlsConfig();
 
         SslProvider provider;
         if (OpenSsl.isAvailable()) {
+            //如果OPENSSL可用
             provider = SslProvider.OPENSSL;
             LOGGER.info("Using OpenSSL provider");
         } else {
+            //如果OPENSSL不可用，使用JDK的SSL
             provider = SslProvider.JDK;
             LOGGER.info("Using JDK SSL provider");
         }
 
+        //判断是否是客户端
         if (forClient) {
+            //确定初始化TLS上下文时是否使用测试模式
             if (tlsTestModeEnable) {
+                //创建客户端SSL上下文
                 return SslContextBuilder
                     .forClient()
                     .sslProvider(SslProvider.JDK)
@@ -113,6 +120,7 @@ public class TlsHelper {
                 SslContextBuilder sslContextBuilder = SslContextBuilder.forClient().sslProvider(SslProvider.JDK);
 
 
+                //确定是否严格验证服务器终结点的证书
                 if (!tlsClientAuthServer) {
                     sslContextBuilder.trustManager(InsecureTrustManagerFactory.INSTANCE);
                 } else {
@@ -120,7 +128,7 @@ public class TlsHelper {
                         sslContextBuilder.trustManager(new File(tlsClientTrustCertPath));
                     }
                 }
-
+                //创建客户端SSL上下文
                 return sslContextBuilder.keyManager(
                     !isNullOrEmpty(tlsClientCertPath) ? new FileInputStream(tlsClientCertPath) : null,
                     !isNullOrEmpty(tlsClientKeyPath) ? decryptionStrategy.decryptPrivateKey(tlsClientKeyPath, true) : null,
@@ -128,12 +136,13 @@ public class TlsHelper {
                     .build();
             }
         } else {
-
+            //确定初始化TLS上下文时是否使用测试模式
             if (tlsTestModeEnable) {
                 SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
                 return SslContextBuilder
                     .forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
                     .sslProvider(SslProvider.JDK)
+                    //客户端的验证方式
                     .clientAuth(ClientAuth.OPTIONAL)
                     .build();
             } else {
@@ -157,43 +166,64 @@ public class TlsHelper {
         }
     }
 
+    /**
+     * 从配置文件中提取TLS配置
+     */
     private static void extractTlsConfigFromFile(final File configFile) {
         if (!(configFile.exists() && configFile.isFile() && configFile.canRead())) {
+            //文件不存在，或者不是文件，或者不可读直接返回
             LOGGER.info("Tls config file doesn't exist, skip it");
             return;
         }
 
+        //TLS配置文件中的属性
         Properties properties;
         properties = new Properties();
         InputStream inputStream = null;
         try {
             inputStream = new FileInputStream(configFile);
+            //读取配置文件中的属性到properties中
             properties.load(inputStream);
         } catch (IOException ignore) {
         } finally {
             if (null != inputStream) {
                 try {
+                    //关闭文件流
                     inputStream.close();
                 } catch (IOException ignore) {
                 }
             }
         }
 
+        //设置确定初始化TLS上下文时是否使用测试模式配置
         tlsTestModeEnable = Boolean.parseBoolean(properties.getProperty(TLS_TEST_MODE_ENABLE, String.valueOf(tlsTestModeEnable)));
+        //设置tls服务器需要客户端身份验证方式配置
         tlsServerNeedClientAuth = properties.getProperty(TLS_SERVER_NEED_CLIENT_AUTH, tlsServerNeedClientAuth);
+        //设置服务器端私钥的存储路径配置
         tlsServerKeyPath = properties.getProperty(TLS_SERVER_KEYPATH, tlsServerKeyPath);
+        //设置服务器端私有密匙的密码配置
         tlsServerKeyPassword = properties.getProperty(TLS_SERVER_KEYPASSWORD, tlsServerKeyPassword);
+        //设置PEM格式的服务器端X.509证书链的存储路径配置
         tlsServerCertPath = properties.getProperty(TLS_SERVER_CERTPATH, tlsServerCertPath);
+        //设置确定是否严格验证客户端端点的证书配置
         tlsServerAuthClient = Boolean.parseBoolean(properties.getProperty(TLS_SERVER_AUTHCLIENT, String.valueOf(tlsServerAuthClient)));
+        //用于验证客户端终结点证书的受信任证书的存储路径
         tlsServerTrustCertPath = properties.getProperty(TLS_SERVER_TRUSTCERTPATH, tlsServerTrustCertPath);
-
+        //客户端私钥的存储路径
         tlsClientKeyPath = properties.getProperty(TLS_CLIENT_KEYPATH, tlsClientKeyPath);
+        //客户端私钥的密码
         tlsClientKeyPassword = properties.getProperty(TLS_CLIENT_KEYPASSWORD, tlsClientKeyPassword);
+        //PEM格式客户端X.509证书链的存储路径
         tlsClientCertPath = properties.getProperty(TLS_CLIENT_CERTPATH, tlsClientCertPath);
+        //确定是否严格验证服务器终结点的证书
         tlsClientAuthServer = Boolean.parseBoolean(properties.getProperty(TLS_CLIENT_AUTHSERVER, String.valueOf(tlsClientAuthServer)));
+        //正在验证终结点服务器的证书的受信任路径
         tlsClientTrustCertPath = properties.getProperty(TLS_CLIENT_TRUSTCERTPATH, tlsClientTrustCertPath);
     }
 
+    /**
+     * 日志打印最后使用Tls配置
+     */
     private static void logTheFinalUsedTlsConfig() {
         LOGGER.info("Log the final used tls related configuration");
         LOGGER.info("{} = {}", TLS_TEST_MODE_ENABLE, tlsTestModeEnable);

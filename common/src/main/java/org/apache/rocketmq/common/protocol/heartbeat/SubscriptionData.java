@@ -55,6 +55,9 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
      * tags标签集合
      */
     private Set<String> tagsSet = new HashSet<String>();
+    /**
+     * tags标签hashCode集合
+     */
     private Set<Integer> codeSet = new HashSet<Integer>();
 
     /**

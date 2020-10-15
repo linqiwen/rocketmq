@@ -25,60 +25,142 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
+/**
+ * Broker配置
+ */
 public class BrokerConfig {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
+    /**
+     * 获取rocketMq主目录
+     */
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    /**
+     * NameSrv地址
+     */
     @ImportantField
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
+    /**
+     * broker地址1
+     */
     @ImportantField
     private String brokerIP1 = RemotingUtil.getLocalAddress();
+    /**
+     * broker地址2
+     */
     private String brokerIP2 = RemotingUtil.getLocalAddress();
+    /**
+     * broker名称
+     */
     @ImportantField
     private String brokerName = localHostName();
+    /**
+     * broker集群名称
+     */
     @ImportantField
     private String brokerClusterName = "DefaultCluster";
+    /**
+     * brokerId
+     */
     @ImportantField
     private long brokerId = MixAll.MASTER_ID;
+    /**
+     * broker权限，默认可读、可写
+     */
     private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
+    /**
+     * 默认的topic队列数量
+     */
     private int defaultTopicQueueNums = 8;
+    /**
+     * 主动创建主题开关
+     */
     @ImportantField
     private boolean autoCreateTopicEnable = true;
 
+    /**
+     * 集群主题开关
+     */
     private boolean clusterTopicEnable = true;
-
+    /**
+     * broker主题开关
+     */
     private boolean brokerTopicEnable = true;
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
+    /**
+     * 消息存储插件
+     *
+     * @see org.apache.rocketmq.broker.plugin.AbstractPluginMessageStore
+     */
     private String messageStorePlugIn = "";
+    /**
+     * 系统跟踪topic
+     */
     @ImportantField
     private String msgTraceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
+    /**
+     * 跟踪主题开关
+     */
     @ImportantField
     private boolean traceTopicEnable = false;
     /**
      * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x, the default
      * value is 1.
      */
+    /**
+     * 发送消息的线程池的线程数量
+     */
     private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
+    /**
+     * 拉取消息的线程池的线程数量
+     */
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
+    /**
+     * 查询消息的线程池的线程数量
+     */
     private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
 
+    /**
+     * 管理broker的线程池的线程数量
+     */
     private int adminBrokerThreadPoolNums = 16;
+    /**
+     * 客户端管理线程池的线程数量
+     */
     private int clientManageThreadPoolNums = 32;
+    /**
+     * 消费者管理线程池的线程数量
+     */
     private int consumerManageThreadPoolNums = 32;
+    /**
+     * 心跳线程池线程数
+     */
     private int heartbeatThreadPoolNums = Math.min(32, Runtime.getRuntime().availableProcessors());
 
     /**
-     * Thread numbers for EndTransactionProcessor
+     * 结束事务线程池数
      */
     private int endTransactionThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors() * 2;
 
+    /**
+     * 刷新消费者偏移量的时间间隔
+     */
     private int flushConsumerOffsetInterval = 1000 * 5;
 
+    /**
+     * 刷新历史消费者偏移的时间间隔
+     */
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
+    /**
+     * 拒绝事务消息
+     */
     @ImportantField
     private boolean rejectTransactionMessage = false;
+    /**
+     * 从地址服务器获取NameSrv地址
+     */
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
@@ -159,20 +241,19 @@ public class BrokerConfig {
     private int registerNameServerPeriod = 1000 * 30;
 
     /**
-     * The minimum time of the transactional message  to be checked firstly, one message only exceed this time interval
-     * that can be checked.
+     * 事务性消息首先被检查的最短时间，一条消息只超过这个可以检查的时间间隔
      */
     @ImportantField
     private long transactionTimeOut = 6 * 1000;
 
     /**
-     * The maximum number of times the message was checked, if exceed this value, this message will be discarded.
+     * 检查消息的最大次数，如果超过此值，此消息将被丢弃
      */
     @ImportantField
     private int transactionCheckMax = 15;
 
     /**
-     * 事务消息检查间隔.
+     * 事务消息检查间隔
      */
     @ImportantField
     private long transactionCheckInterval = 60 * 1000;
@@ -183,6 +264,11 @@ public class BrokerConfig {
     @ImportantField
     private boolean aclEnable = false;
 
+    /**
+     * 获取本地的主机名
+     *
+     * @return 本地的主机名
+     */
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();

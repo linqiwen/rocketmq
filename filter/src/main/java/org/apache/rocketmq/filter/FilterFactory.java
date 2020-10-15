@@ -21,23 +21,25 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Filter factory: support other filter to register.
+ * 过滤器工厂：支持其他过滤器注册
  */
 public class FilterFactory {
+
 
     public static final FilterFactory INSTANCE = new FilterFactory();
 
     protected static final Map<String, FilterSpi> FILTER_SPI_HOLDER = new HashMap<String, FilterSpi>(4);
 
     static {
+        //注册过滤器
         FilterFactory.INSTANCE.register(new SqlFilter());
     }
 
     /**
-     * Register a filter.
+     * 注册过滤器.
      * <br>
      * Note:
-     * <li>1. Filter registered will be used in broker server, so take care of it's reliability and performance.</li>
+     * <li>1. 注册的过滤器将在代理服务器中使用，所以要注意它的可靠性和性能.</li>
      */
     public void register(FilterSpi filterSpi) {
         if (FILTER_SPI_HOLDER.containsKey(filterSpi.ofType())) {
@@ -48,14 +50,20 @@ public class FilterFactory {
     }
 
     /**
-     * Un register a filter.
+     * 注销过滤器
+     *
+     * @param type 过滤器类型
+     * @return 过滤器
      */
     public FilterSpi unRegister(String type) {
         return FILTER_SPI_HOLDER.remove(type);
     }
 
     /**
-     * Get a filter registered, null if none exist.
+     * 获取已注册的筛选器，如果不存在，则为空
+     *
+     * @param type 过滤器类型
+     * @return 过滤器
      */
     public FilterSpi get(String type) {
         return FILTER_SPI_HOLDER.get(type);

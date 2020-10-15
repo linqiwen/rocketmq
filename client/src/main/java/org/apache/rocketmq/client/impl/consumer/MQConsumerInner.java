@@ -65,7 +65,7 @@ public interface MQConsumerInner {
     void persistConsumerOffset();
 
     /**
-     * 更新主题的订阅信息
+     * 更新主题的队列信息
      *
      * @param topic 主题
      * @param info 消息队列列表

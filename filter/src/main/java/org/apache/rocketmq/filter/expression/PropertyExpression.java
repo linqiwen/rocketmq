@@ -18,10 +18,10 @@
 package org.apache.rocketmq.filter.expression;
 
 /**
- * Represents a property expression
+ * 代表一个属性表达式
  * <p>
- * This class was taken from ActiveMQ org.apache.activemq.filter.PropertyExpression,
- * but more simple and no transfer between expression and message property.
+ * 这个类来自ActiveMQ org.apache.activemq.filter.PropertyExpression,
+ * 但表达式和消息属性之间更简单且无需转换
  * </p>
  */
 public class PropertyExpression implements Expression {

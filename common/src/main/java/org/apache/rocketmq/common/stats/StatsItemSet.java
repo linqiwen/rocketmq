@@ -26,12 +26,24 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.logging.InternalLogger;
 
+/**
+ * 数据项集合
+ */
 public class StatsItemSet {
     private final ConcurrentMap<String/* key */, StatsItem> statsItemTable =
         new ConcurrentHashMap<String, StatsItem>(128);
 
+    /**
+     * 数据项名称
+     */
     private final String statsName;
+    /**
+     * 调度器
+     */
     private final ScheduledExecutorService scheduledExecutorService;
+    /**
+     * 日志
+     */
     private final InternalLogger log;
 
     public StatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService, InternalLogger log) {
@@ -43,6 +55,7 @@ public class StatsItemSet {
 
     public void init() {
 
+        //每隔10秒执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -53,6 +66,7 @@ public class StatsItemSet {
             }
         }, 0, 10, TimeUnit.SECONDS);
 
+        //每隔10分钟执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -63,6 +77,7 @@ public class StatsItemSet {
             }
         }, 0, 10, TimeUnit.MINUTES);
 
+        //每隔1小时执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -73,6 +88,7 @@ public class StatsItemSet {
             }
         }, 0, 1, TimeUnit.HOURS);
 
+        //每隔60秒执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -83,6 +99,7 @@ public class StatsItemSet {
             }
         }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60, TimeUnit.MILLISECONDS);
 
+        //每隔60分钟执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -93,6 +110,7 @@ public class StatsItemSet {
             }
         }, Math.abs(UtilAll.computNextHourTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60, TimeUnit.MILLISECONDS);
 
+        //每隔24小时执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {

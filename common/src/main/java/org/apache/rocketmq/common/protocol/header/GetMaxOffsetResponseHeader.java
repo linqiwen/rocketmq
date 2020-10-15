@@ -24,7 +24,13 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+/**
+ * 获取消息队列的最大偏移量响应头
+ */
 public class GetMaxOffsetResponseHeader implements CommandCustomHeader {
+    /**
+     * 消息队列的最大偏移量
+     */
     @CFNotNull
     private Long offset;
 

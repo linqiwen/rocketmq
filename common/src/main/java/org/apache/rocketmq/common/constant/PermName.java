@@ -43,14 +43,14 @@ public class PermName {
     }
 
     /**
-     * 是否只读
+     * 是否可读
      */
     public static boolean isReadable(final int perm) {
         return (perm & PERM_READ) == PERM_READ;
     }
 
     /**
-     * 是否只写
+     * 是否可写
      */
     public static boolean isWriteable(final int perm) {
         return (perm & PERM_WRITE) == PERM_WRITE;

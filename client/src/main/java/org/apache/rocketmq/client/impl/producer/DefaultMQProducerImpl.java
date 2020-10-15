@@ -302,6 +302,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     @Override
     public TransactionListener getCheckListener() {
+        //如果是事务生产者，获取事务监听器
         if (this.defaultMQProducer instanceof TransactionMQProducer) {
             TransactionMQProducer producer = (TransactionMQProducer) defaultMQProducer;
             return producer.getTransactionListener();

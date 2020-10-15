@@ -115,6 +115,11 @@ public class CommitLog {
         return this.mappedFileQueue.getFlushedWhere();
     }
 
+    /**
+     * 获取消费队列的最大偏移量
+     *
+     * @return 消费队列的最大偏移量
+     */
     public long getMaxOffset() {
         return this.mappedFileQueue.getMaxOffset();
     }
@@ -814,6 +819,9 @@ public class CommitLog {
         return -1;
     }
 
+    /**
+     *
+     */
     public long getMinOffset() {
         MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile();
         if (mappedFile != null) {
@@ -837,8 +845,13 @@ public class CommitLog {
         return null;
     }
 
+    /**
+     * 获取到下一个文件偏移量
+     */
     public long rollNextFile(final long offset) {
+        //CommitLog文件大小,默认是 1G
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
+        //当前偏移量加上CommitLog文件大小减去上次大于的偏移量
         return offset + mappedFileSize - offset % mappedFileSize;
     }
 

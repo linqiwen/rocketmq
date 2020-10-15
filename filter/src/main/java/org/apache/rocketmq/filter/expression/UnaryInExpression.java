@@ -22,7 +22,7 @@ import org.apache.rocketmq.filter.constant.UnaryType;
 import java.util.Collection;
 
 /**
- * In expression.
+ * In 表达式.
  */
 abstract public class UnaryInExpression extends UnaryExpression implements BooleanExpression {
 

@@ -234,35 +234,69 @@ public class UtilAll {
         return (int) (crc32.getValue() & 0x7FFFFFFF);
     }
 
+    /**
+     * byte数组转成字符串
+     *
+     * @param src byte数组
+     * @return 字符串
+     */
     public static String bytes2string(byte[] src) {
+        //十六进制字符串的char数组，长度byte数组长度的两倍
         char[] hexChars = new char[src.length * 2];
+        //遍历byte数组
         for (int j = 0; j < src.length; j++) {
+            //获取每个byte值
             int v = src[j] & 0xFF;
+            //byte值的高四位j * 2位置的char值
             hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            //byte值的低四位j * 2 + 1位置的char值
             hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
+        //十六进制字符串的char数组转成字符串
         return new String(hexChars);
     }
 
+    /**
+     * 字符串转byte
+     *
+     * @param hexString 十六进制字符串
+     * @return byte数组
+     */
     public static byte[] string2bytes(String hexString) {
         if (hexString == null || hexString.equals("")) {
+            //十六进制字符串为null或者空串返回null
             return null;
         }
+        //全部转成大写
         hexString = hexString.toUpperCase();
+        //char数组长度的一半
         int length = hexString.length() / 2;
+        //获取字符串的char数组
         char[] hexChars = hexString.toCharArray();
+        //创建字节数组
         byte[] d = new byte[length];
         for (int i = 0; i < length; i++) {
+            //每次获取char数组中的两个字符
             int pos = i * 2;
+            //设置每个byte数组
             d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
         }
         return d;
     }
 
+    /**
+     * char转成byte
+     */
     private static byte charToByte(char c) {
         return (byte) "0123456789ABCDEF".indexOf(c);
     }
 
+    /**
+     * 对内容字节数组进行解压
+     *
+     * @param src 待解压的字节数组
+     * @return 解压后的字节数组
+     */
     public static byte[] uncompress(final byte[] src) throws IOException {
         byte[] result = src;
         byte[] uncompressData = new byte[src.length];
@@ -276,24 +310,29 @@ public class UtilAll {
                 if (len <= 0) {
                     break;
                 }
+                //将uncompressData写入到输出流中
                 byteArrayOutputStream.write(uncompressData, 0, len);
             }
             byteArrayOutputStream.flush();
+            //获取字节数组
             result = byteArrayOutputStream.toByteArray();
         } catch (IOException e) {
             throw e;
         } finally {
             try {
+                //关闭字节数组输入流
                 byteArrayInputStream.close();
             } catch (IOException e) {
                 log.error("Failed to close the stream", e);
             }
             try {
+                //关闭增压输入流
                 inflaterInputStream.close();
             } catch (IOException e) {
                 log.error("Failed to close the stream", e);
             }
             try {
+                //关闭字节数组输出流
                 byteArrayOutputStream.close();
             } catch (IOException e) {
                 log.error("Failed to close the stream", e);
@@ -303,21 +342,34 @@ public class UtilAll {
         return result;
     }
 
+    /**
+     * 对字节数组进行压缩
+     *
+     * @param src 字节数组
+     * @param level 压缩等级
+     * @return 压缩后的字节数组
+     */
     public static byte[] compress(final byte[] src, final int level) throws IOException {
         byte[] result = src;
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(src.length);
         java.util.zip.Deflater defeater = new java.util.zip.Deflater(level);
+        //定义压缩输出流
         DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(byteArrayOutputStream, defeater);
         try {
             deflaterOutputStream.write(src);
             deflaterOutputStream.finish();
             deflaterOutputStream.close();
+            //获取压缩后的字节流
             result = byteArrayOutputStream.toByteArray();
         } catch (IOException e) {
+            //关闭压缩器并丢弃任何未处理的输入。
+            //当压缩器不再工作时，应调用此方法
+            //正在使用，但也将由finalize（）方法自动调用。调用此方法后，Deflater对象的行为将是未定义的
             defeater.end();
             throw e;
         } finally {
             try {
+                //关闭输出流
                 byteArrayOutputStream.close();
             } catch (IOException ignored) {
             }
@@ -349,6 +401,12 @@ public class UtilAll {
         return df.format(date);
     }
 
+    /**
+     * 解析时间
+     *
+     * @param date 时间字符串
+     * @param pattern 格式
+     */
     public static Date parseDate(String date, String pattern) {
         SimpleDateFormat df = new SimpleDateFormat(pattern);
         try {
@@ -486,13 +544,13 @@ public class UtilAll {
     }
 
     /**
-     * 将ip转成字符串
+     * 将字节数组转成ip字符串
      *
      * @param ip ipv4字节数组
      * @return 字符串ipv4
      */
     public static String ipToIPv4Str(byte[] ip) {
-        //非法的ip，直接返回null
+        //非法的字节数组，直接返回null
         if (ip.length != 4) {
             return null;
         }

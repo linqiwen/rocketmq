@@ -20,8 +20,14 @@ package org.apache.rocketmq.common.protocol.body;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
+/**
+ * 消费者偏移量序列化包装类
+ */
 public class ConsumerOffsetSerializeWrapper extends RemotingSerializable {
+    /**
+     * 每个消费组对主题下的队列的消费偏移量
+     * key->主题@消费者组，value-><key->队列id, value->消费组对主题下的队列的消费偏移量>
+     */
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
 

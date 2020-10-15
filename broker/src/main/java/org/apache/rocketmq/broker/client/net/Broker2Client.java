@@ -62,17 +62,29 @@ public class Broker2Client {
         this.brokerController = brokerController;
     }
 
+    /**
+     * 检查生产者的事务状态
+     *
+     * @param group 生产者组
+     * @param channel 生产者通道
+     * @param requestHeader 请求头
+     * @param messageExt 扩展的消息体
+     */
     public void checkProducerTransactionState(
         final String group,
         final Channel channel,
         final CheckTransactionStateRequestHeader requestHeader,
         final MessageExt messageExt) throws Exception {
+        //创建事务状态检查请求命令
         RemotingCommand request =
             RemotingCommand.createRequestCommand(RequestCode.CHECK_TRANSACTION_STATE, requestHeader);
+        //设置请求内容
         request.setBody(MessageDecoder.encode(messageExt, false));
         try {
+            //单向调用
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 10);
         } catch (Exception e) {
+            //出现异常打印日志
             log.error("Check transaction failed because invoke producer exception. group={}, msgId={}", group, messageExt.getMsgId(), e.getMessage());
         }
     }

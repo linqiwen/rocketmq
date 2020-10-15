@@ -57,6 +57,9 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * NameServer默认的请求处理器
+ */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
@@ -70,14 +73,16 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
 
+        //通道处理上下文不为空
         if (ctx != null) {
+            //打印日志
             log.debug("receive request, {} {} {}",
                 request.getCode(),
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                 request);
         }
 
-
+        //请求类型
         switch (request.getCode()) {
             case RequestCode.PUT_KV_CONFIG:
                 return this.putKVConfig(ctx, request);
@@ -85,6 +90,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.getKVConfig(ctx, request);
             case RequestCode.DELETE_KV_CONFIG:
                 return this.deleteKVConfig(ctx, request);
+            //查询数据版本
             case RequestCode.QUERY_DATA_VERSION:
                 return queryBrokerTopicConfig(ctx, request);
             case RequestCode.REGISTER_BROKER:
@@ -96,6 +102,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 }
             case RequestCode.UNREGISTER_BROKER:
                 return this.unregisterBroker(ctx, request);
+            //获取topic的路由信息
             case RequestCode.GET_ROUTEINTO_BY_TOPIC:
                 return this.getRouteInfoByTopic(ctx, request);
             case RequestCode.GET_BROKER_CLUSTER_INFO:
@@ -250,26 +257,43 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return true;
     }
 
+    /**
+     * 查询broker主题配置
+     *
+     * @param ctx 通道处理器上下文
+     * @param request 请求命令
+     * @return 响应命令
+     */
     public RemotingCommand queryBrokerTopicConfig(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
+        //构造响应命令
         final RemotingCommand response = RemotingCommand.createResponseCommand(QueryDataVersionResponseHeader.class);
+        //获取查询数据版本响应头
         final QueryDataVersionResponseHeader responseHeader = (QueryDataVersionResponseHeader) response.readCustomHeader();
+        //获取查询数据版本的请求头
         final QueryDataVersionRequestHeader requestHeader =
             (QueryDataVersionRequestHeader) request.decodeCommandCustomHeader(QueryDataVersionRequestHeader.class);
+        //对请求内容进行编译成数据版本
         DataVersion dataVersion = DataVersion.decode(request.getBody(), DataVersion.class);
-
+        //判断namesrv的数据版本和发送过来的数据版本是否一致
         Boolean changed = this.namesrvController.getRouteInfoManager().isBrokerTopicConfigChanged(requestHeader.getBrokerAddr(), dataVersion);
         if (!changed) {
+            //如果数据版本不一致，更改broker所对应现场信息时间戳
             this.namesrvController.getRouteInfoManager().updateBrokerInfoUpdateTimestamp(requestHeader.getBrokerAddr());
         }
 
+        //查询broker所对应的数据版本
         DataVersion nameSeverDataVersion = this.namesrvController.getRouteInfoManager().queryBrokerTopicConfig(requestHeader.getBrokerAddr());
+        //设置响应编码
         response.setCode(ResponseCode.SUCCESS);
+        //设置响应提示
         response.setRemark(null);
 
         if (nameSeverDataVersion != null) {
+            //broker所对应的数据版本不为空，设置成响应内容
             response.setBody(nameSeverDataVersion.encode());
         }
+        //设置数据版本是否修改标识
         responseHeader.setChanged(changed);
         return response;
     }
@@ -334,16 +358,27 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 获取主题的路由信息
+     *
+     * @param ctx 通道处理上下文
+     * @param request 请求命令
+     * @return 响应命令
+     */
     public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
+        //构造响应命令
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        //获取路由信息的请求头
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
+        //获取主题的路由信息
         TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
 
         if (topicRouteData != null) {
             if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
+                //获取有序主题配置
                 String orderTopicConf =
                     this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
                         requestHeader.getTopic());
@@ -351,8 +386,11 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             }
 
             byte[] content = topicRouteData.encode();
+            //设置响应内容
             response.setBody(content);
+            //设置响应成功编码
             response.setCode(ResponseCode.SUCCESS);
+            //设置提示
             response.setRemark(null);
             return response;
         }

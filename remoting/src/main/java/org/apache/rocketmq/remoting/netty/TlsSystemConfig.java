@@ -17,10 +17,17 @@
 
 package org.apache.rocketmq.remoting.netty;
 
+import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import org.apache.rocketmq.remoting.common.TlsMode;
 
+/**
+ * TLS协议系统配置
+ */
 public class TlsSystemConfig {
+    /**
+     * TLS服务模式
+     */
     public static final String TLS_SERVER_MODE = "tls.server.mode";
     public static final String TLS_ENABLE = "tls.enable";
     public static final String TLS_CONFIG_FILE = "tls.config.file";
@@ -41,85 +48,87 @@ public class TlsSystemConfig {
 
 
     /**
-     * To determine whether use SSL in client-side, include SDK client and BrokerOuterAPI
+     * 决定客户端侧是否使用SSL, 包括SDK客户端和BrokerRouterAPI
      */
     public static boolean tlsEnable = Boolean.parseBoolean(System.getProperty(TLS_ENABLE, "false"));
 
+
     /**
-     * To determine whether use test mode when initialize TLS context
+     * 确定初始化TLS上下文时是否使用测试模式
      */
     public static boolean tlsTestModeEnable = Boolean.parseBoolean(System.getProperty(TLS_TEST_MODE_ENABLE, "true"));
 
     /**
-     * Indicates the state of the {@link javax.net.ssl.SSLEngine} with respect to client authentication.
-     * This configuration item really only applies when building the server-side {@link SslContext},
-     * and can be set to none, require or optional.
+     * 指示{@link javax.net.ssl.SSLEngine}关于客户端身份验证。
+     * 这个配置项实际上只在构建服务器端{@linksslcontext}时应用，并且可以设置为none、require或optional
+     *
+     * @see ClientAuth
      */
     public static String tlsServerNeedClientAuth = System.getProperty(TLS_SERVER_NEED_CLIENT_AUTH, "none");
     /**
-     * The store path of server-side private key
+     * 服务器端私钥的存储路径
      */
     public static String tlsServerKeyPath = System.getProperty(TLS_SERVER_KEYPATH, null);
 
     /**
-     * The  password of the server-side private key
+     * 服务器端私有密匙的密码
      */
     public static String tlsServerKeyPassword = System.getProperty(TLS_SERVER_KEYPASSWORD, null);
 
     /**
-     * The store path of server-side X.509 certificate chain in PEM format
+     * PEM格式的服务器端X.509证书链的存储路径
      */
     public static String tlsServerCertPath = System.getProperty(TLS_SERVER_CERTPATH, null);
 
     /**
-     * To determine whether verify the client endpoint's certificate strictly
+     * 确定是否严格验证客户端端点的证书
      */
     public static boolean tlsServerAuthClient = Boolean.parseBoolean(System.getProperty(TLS_SERVER_AUTHCLIENT, "false"));
 
     /**
-     * The store path of trusted certificates for verifying the client endpoint's certificate
+     * 用于验证客户端终结点证书的受信任证书的存储路径
      */
     public static String tlsServerTrustCertPath = System.getProperty(TLS_SERVER_TRUSTCERTPATH, null);
 
     /**
-     * The store path of client-side private key
+     * 客户端私钥的存储路径
      */
     public static String tlsClientKeyPath = System.getProperty(TLS_CLIENT_KEYPATH, null);
 
     /**
-     * The  password of the client-side private key
+     * 客户端私钥的密码
      */
     public static String tlsClientKeyPassword = System.getProperty(TLS_CLIENT_KEYPASSWORD, null);
 
     /**
-     * The store path of client-side X.509 certificate chain in PEM format
+     * PEM格式客户端X.509证书链的存储路径
      */
     public static String tlsClientCertPath = System.getProperty(TLS_CLIENT_CERTPATH, null);
 
     /**
-     * To determine whether verify the server endpoint's certificate strictly
+     * 确定是否严格验证服务器终结点的证书
      */
     public static boolean tlsClientAuthServer = Boolean.parseBoolean(System.getProperty(TLS_CLIENT_AUTHSERVER, "false"));
 
     /**
-     * The store path of trusted certificates for verifying the server endpoint's certificate
+     * 正在验证终结点服务器的证书的受信任路径
      */
     public static String tlsClientTrustCertPath = System.getProperty(TLS_CLIENT_TRUSTCERTPATH, null);
 
     /**
-     * For server, three SSL modes are supported: disabled, permissive and enforcing.
-     * For client, use {@link TlsSystemConfig#tlsEnable} to determine whether use SSL.
+     * 对于服务器，支持三种SSL模式：disabled、permissive和enforcing
+     * 对应客户端，使用{@link TlsSystemConfig#tlsEnable}决定是否使用SSL
      * <ol>
-     *     <li><strong>disabled:</strong> SSL is not supported; any incoming SSL handshake will be rejected, causing connection closed.</li>
-     *     <li><strong>permissive:</strong> SSL is optional, aka, server in this mode can serve client connections with or without SSL;</li>
-     *     <li><strong>enforcing:</strong> SSL is required, aka, non SSL connection will be rejected.</li>
+     *     <li><strong>禁用:</strong> 不支持SSL; 任何传入的SSL握手都将被拒绝，从而导致连接关闭</li>
+     *     <li><strong>允许:</strong> SSL是可选的，也就是说，这种模式下的服务器可以使用或不使用SSL来服务客户机连接</li>
+     *     <li><strong>强制:</strong> 需要SSL，即非SSL连接将被拒绝.</li>
      * </ol>
      */
     public static TlsMode tlsMode = TlsMode.parse(System.getProperty(TLS_SERVER_MODE, "permissive"));
 
     /**
-     * A config file to store the above TLS related configurations,
-     * except {@link TlsSystemConfig#tlsMode} and {@link TlsSystemConfig#tlsEnable}
+     * 一个配置文件，用于存储上述与TLS相关的配置,
+     * 除了 {@link TlsSystemConfig#tlsMode} and {@link TlsSystemConfig#tlsEnable}
      */
     public static String tlsConfigFile = System.getProperty(TLS_CONFIG_FILE, "/etc/rocketmq/tls.properties");
 }

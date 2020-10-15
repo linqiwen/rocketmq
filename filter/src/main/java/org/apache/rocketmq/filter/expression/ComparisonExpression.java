@@ -20,42 +20,56 @@ package org.apache.rocketmq.filter.expression;
 import java.util.List;
 
 /**
- * A filter performing a comparison of two objects
+ * 对两个对象进行比较的过滤器
  * <p>
- * This class was taken from ActiveMQ org.apache.activemq.filter.ComparisonExpression,
+ * 这个类取自ActiveMQ org.apache.activemq.filter.ComparisonExpression,
  * but:
- * 1. Remove LIKE expression, and related methods;
- * 2. Extract a new method __compare which has int return value;
- * 3. When create between expression, check whether left value is less or equal than right value;
- * 4. For string type value(can not convert to number), only equal or unequal comparison are supported.
+ * 1. 消除LIKE表达式, 和相关方法;
+ * 2. 提取一个新的返回值为int的方法 __compare;
+ * 3. 当创建between表达式时，检查左值是否小于或等于右值；
+ * 4. 对于字符串类型值(不能转换为数字), 只支持相等或不等比较
  * </p>
  */
 public abstract class ComparisonExpression extends BinaryExpression implements BooleanExpression {
 
+    /**
+     * 是否转换字符串表达式本地线程存储
+     */
     public static final ThreadLocal<Boolean> CONVERT_STRING_EXPRESSIONS = new ThreadLocal<Boolean>();
 
+    /**
+     * 是否转换字符串表达式
+     */
     boolean convertStringExpressions = false;
 
     /**
-     * @param left
-     * @param right
+     * @param left 左表达式
+     * @param right 右表达式
      */
     public ComparisonExpression(Expression left, Expression right) {
         super(left, right);
         convertStringExpressions = CONVERT_STRING_EXPRESSIONS.get() != null;
     }
 
+    /**
+     * 创建Between表达式
+     */
     public static BooleanExpression createBetween(Expression value, Expression left, Expression right) {
-        // check
+        // 检查左右表达式是否常量表达式，如果是常量表达式，需检查左值是否小于或等于右值
         if (left instanceof ConstantExpression && right instanceof ConstantExpression) {
+            //左常量表达式值
             Object lv = ((ConstantExpression) left).getValue();
+            //右常量表达式值
             Object rv = ((ConstantExpression) right).getValue();
             if (lv == null || rv == null) {
+                //只要一个为空就抛异常
                 throw new RuntimeException("Illegal values of between, values can not be null!");
             }
+            //判断左右表达式是否可对比
             if (lv instanceof Comparable && rv instanceof Comparable) {
                 int ret = __compare((Comparable) rv, (Comparable) lv, true);
                 if (ret < 0)
+                    //如果左表达式值没有小于右表达式值抛异常
                     throw new RuntimeException(
                         String.format("Illegal values of between, left value(%s) must less than or equal to right value(%s)", lv, rv)
                     );
@@ -274,112 +288,160 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
         return compare(lv, rv);
     }
 
+    /**
+     * 比较两个值
+     *
+     * @param lv 比较表达式左边的值
+     * @param rv 比较表达式右边的值
+     * @param convertStringExpressions 左表达式或右表达式为String类型，是否需要转成特定类型
+     * @return {@code 0}相等，{@code 1}lv大于rv，{@code -1}lv小于rv
+     */
     @SuppressWarnings({"rawtypes", "unchecked"})
     protected static int __compare(Comparable lv, Comparable rv, boolean convertStringExpressions) {
+        //获取左值的class类型
         Class<? extends Comparable> lc = lv.getClass();
+        //获取右值的class类型
         Class<? extends Comparable> rc = rv.getClass();
         // If the the objects are not of the same type,
         // try to convert up to allow the comparison.
         if (lc != rc) {
             try {
+                //如果左表达式值类型是Boolean类型
                 if (lc == Boolean.class) {
+                    //convertStringExpressions为true，并且右表达式值类型String，将String转成boolean类型
                     if (convertStringExpressions && rc == String.class) {
                         lv = Boolean.valueOf((String) lv).booleanValue();
                     } else {
+                        //否则直接返回-1
                         return -1;
                     }
-                } else if (lc == Byte.class) {
+                } else if (lc == Byte.class) {//如果左表达式值类型是Byte类型
+                    //右表达式值类型Short类型
                     if (rc == Short.class) {
+                        //将左表达式值Byte转成Short类型值
                         lv = Short.valueOf(((Number) lv).shortValue());
-                    } else if (rc == Integer.class) {
+                    } else if (rc == Integer.class) {//右表达式值类型是Integer类型
+                        //将左表达式值Byte转成Integer类型值
                         lv = Integer.valueOf(((Number) lv).intValue());
-                    } else if (rc == Long.class) {
+                    } else if (rc == Long.class) {//右表达式值类型是Long类型
+                        //将左表达式值Byte转成Long类型值
                         lv = Long.valueOf(((Number) lv).longValue());
-                    } else if (rc == Float.class) {
+                    } else if (rc == Float.class) {//右表达式值类型是Float类型
+                        //将左表达式值Byte转成Float类型值
                         lv = new Float(((Number) lv).floatValue());
-                    } else if (rc == Double.class) {
+                    } else if (rc == Double.class) {//右表达式值类型是Double类型
+                        //将左表达式值Byte转成Double类型值
                         lv = new Double(((Number) lv).doubleValue());
-                    } else if (convertStringExpressions && rc == String.class) {
+                    } else if (convertStringExpressions && rc == String.class) {//如果右表达式类型是String类型，并且convertStringExpressions为true
+                        //将有表达式值Strung转成Byte类型
                         rv = Byte.valueOf((String) rv);
                     } else {
                         return -1;
                     }
-                } else if (lc == Short.class) {
-                    if (rc == Integer.class) {
+                } else if (lc == Short.class) {//如果左表达式值类型是short类型
+                    if (rc == Integer.class) {//右表达式值类型是Integer类型
+                        //将左表达式值Short转成Integer类型值
                         lv = Integer.valueOf(((Number) lv).intValue());
-                    } else if (rc == Long.class) {
+                    } else if (rc == Long.class) {//右表达式值类型是Long类型
+                        //将左表达式值Short转成Long类型值
                         lv = Long.valueOf(((Number) lv).longValue());
-                    } else if (rc == Float.class) {
+                    } else if (rc == Float.class) {//右表达式值类型是Float类型
+                        //将左表达式值Short转成Float类型值
                         lv = new Float(((Number) lv).floatValue());
-                    } else if (rc == Double.class) {
+                    } else if (rc == Double.class) {//右表达式值类型是Double类型
+                        //将左表达式值Short转成Double类型值
                         lv = new Double(((Number) lv).doubleValue());
-                    } else if (convertStringExpressions && rc == String.class) {
+                    } else if (convertStringExpressions && rc == String.class) {//如果右表达式类型是String类型，并且convertStringExpressions为true
+                        //将有表达式值Strung转成Short类型
                         rv = Short.valueOf((String) rv);
                     } else {
                         return -1;
                     }
-                } else if (lc == Integer.class) {
-                    if (rc == Long.class) {
+                } else if (lc == Integer.class) {//如果左表达式值类型是Integer类型
+                    if (rc == Long.class) {//右表达式值类型是Long类型
+                        //将左表达式值Integer转成Long类型值
                         lv = Long.valueOf(((Number) lv).longValue());
-                    } else if (rc == Float.class) {
+                    } else if (rc == Float.class) {//右表达式值类型是Float类型
+                        //将左表达式值Integer转成Float类型值
                         lv = new Float(((Number) lv).floatValue());
-                    } else if (rc == Double.class) {
+                    } else if (rc == Double.class) {//右表达式值类型是Double类型
+                        //将左表达式值Integer转成Double类型值
                         lv = new Double(((Number) lv).doubleValue());
-                    } else if (convertStringExpressions && rc == String.class) {
+                    } else if (convertStringExpressions && rc == String.class) {//如果右表达式类型是String类型，并且convertStringExpressions为true
+                        //将有表达式值Strung转成Integer类型
                         rv = Integer.valueOf((String) rv);
                     } else {
                         return -1;
                     }
-                } else if (lc == Long.class) {
-                    if (rc == Integer.class) {
+                } else if (lc == Long.class) {//如果左表达式值类型是Long类型
+                    if (rc == Integer.class) {//右表达式值类型是Integer类型
+                        //将右表达式值Integer转成Long类型值
                         rv = Long.valueOf(((Number) rv).longValue());
-                    } else if (rc == Float.class) {
+                    } else if (rc == Float.class) {//右表达式值类型是Float类型
+                        //将左表达式值Long转成Float类型
                         lv = new Float(((Number) lv).floatValue());
-                    } else if (rc == Double.class) {
+                    } else if (rc == Double.class) {//右表达式值类型是Double类型
+                        //将左表达式值Long转成Double类型
                         lv = new Double(((Number) lv).doubleValue());
-                    } else if (convertStringExpressions && rc == String.class) {
+                    } else if (convertStringExpressions && rc == String.class) {//如果右表达式类型是String类型，并且convertStringExpressions为true
+                        //将有表达式值Strung转成Long类型
                         rv = Long.valueOf((String) rv);
                     } else {
                         return -1;
                     }
-                } else if (lc == Float.class) {
-                    if (rc == Integer.class) {
+                } else if (lc == Float.class) {//如果左表达式值类型是Float类型
+                    if (rc == Integer.class) {//右表达式值类型是Integer类型
+                        //将右表达式值Integer转成Float类型值
                         rv = new Float(((Number) rv).floatValue());
-                    } else if (rc == Long.class) {
+                    } else if (rc == Long.class) {//右表达式值类型是Long类型
+                        //将右表达式值Long转成Float类型值
                         rv = new Float(((Number) rv).floatValue());
-                    } else if (rc == Double.class) {
+                    } else if (rc == Double.class) {//右表达式值类型是Double类型
+                        //将左表达式值Long转成Double类型
                         lv = new Double(((Number) lv).doubleValue());
-                    } else if (convertStringExpressions && rc == String.class) {
+                    } else if (convertStringExpressions && rc == String.class) {//如果右表达式类型是String类型，并且convertStringExpressions为true
+                        //将有表达式值Strung转成Float类型
                         rv = Float.valueOf((String) rv);
                     } else {
                         return -1;
                     }
-                } else if (lc == Double.class) {
-                    if (rc == Integer.class) {
+                } else if (lc == Double.class) {//如果左表达式值类型是Double类型
+                    if (rc == Integer.class) {//右表达式值类型是Integer类型
+                        //将右表达式值Integer转成Double类型值
                         rv = new Double(((Number) rv).doubleValue());
-                    } else if (rc == Long.class) {
+                    } else if (rc == Long.class) {//右表达式值类型是Long类型
+                        //将右表达式值Long转成Double类型值
                         rv = new Double(((Number) rv).doubleValue());
-                    } else if (rc == Float.class) {
+                    } else if (rc == Float.class) {//右表达式值类型是Float类型
+                        //将右表达式值Float转成Double类型值
                         rv = new Float(((Number) rv).doubleValue());
-                    } else if (convertStringExpressions && rc == String.class) {
+                    } else if (convertStringExpressions && rc == String.class) {//如果右表达式类型是String类型，并且convertStringExpressions为true
+                        //将右表达式值Strung转成Double类型
                         rv = Double.valueOf((String) rv);
                     } else {
                         return -1;
                     }
-                } else if (convertStringExpressions && lc == String.class) {
-                    if (rc == Boolean.class) {
+                } else if (convertStringExpressions && lc == String.class) {//如果左表达式类型是String类型，并且convertStringExpressions为true
+                    if (rc == Boolean.class) {//右表达式值类型是Boolean类型
+                        //将左表达式值String转成Boolena类型
                         lv = Boolean.valueOf((String) lv);
-                    } else if (rc == Byte.class) {
+                    } else if (rc == Byte.class) {//右表达式值类型是Byte类型
+                        //将左表达式值String转成Byte类型
                         lv = Byte.valueOf((String) lv);
-                    } else if (rc == Short.class) {
+                    } else if (rc == Short.class) {//右表达式值类型是Short类型
+                        //将左表达式值String转成Short类型
                         lv = Short.valueOf((String) lv);
-                    } else if (rc == Integer.class) {
+                    } else if (rc == Integer.class) {//右表达式值类型是Integer类型
+                        //将左表达式值String转成Integer类型
                         lv = Integer.valueOf((String) lv);
-                    } else if (rc == Long.class) {
+                    } else if (rc == Long.class) {//右表达式值类型是Long类型
+                        //将左表达式值String转成Long类型
                         lv = Long.valueOf((String) lv);
-                    } else if (rc == Float.class) {
+                    } else if (rc == Float.class) {//右表达式值类型是Float类型
+                        //将左表达式值String转成Float类型
                         lv = Float.valueOf((String) lv);
-                    } else if (rc == Double.class) {
+                    } else if (rc == Double.class) {//右表达式值类型是Double类型
+                        //将左表达式值String转成Double类型
                         lv = Double.valueOf((String) lv);
                     } else {
                         return -1;

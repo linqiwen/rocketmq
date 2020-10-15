@@ -25,39 +25,39 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 /**
- * This class defines contracting interfaces to implement, allowing third-party vendor to use customized message store.
+ * 此类定义要实现的约定接口，允许第三方供应商使用自定义消息存储.
  */
 public interface MessageStore {
 
     /**
-     * Load previously stored messages.
+     * 加载以前保存的消息
      *
-     * @return true if success; false otherwise.
+     * @return true 如果成功; false 其他.
      */
     boolean load();
 
     /**
-     * Launch this message store.
+     * 发布此消息存储
      *
-     * @throws Exception if there is any error.
+     * @throws Exception 如果任何其他错误.
      */
     void start() throws Exception;
 
     /**
-     * Shutdown this message store.
+     * 关闭此消息存储.
      */
     void shutdown();
 
     /**
-     * Destroy this message store. Generally, all persistent files should be removed after invocation.
+     * 摧毁这个消息存储。一般来说,应该在调用后删除所有持久化文件.
      */
     void destroy();
 
     /**
-     * Store a message into store.
+     * 将消息存储到存储中
      *
-     * @param msg Message instance to store
-     * @return result of store operation.
+     * @param msg 要存储的消息实例
+     * @return 存储操作的结果
      */
     PutMessageResult putMessage(final MessageExtBrokerInner msg);
 
@@ -113,12 +113,12 @@ public interface MessageStore {
     long getCommitLogOffsetInQueue(final String topic, final int queueId, final long consumeQueueOffset);
 
     /**
-     * Look up the physical offset of the message whose store timestamp is as specified.
+     * 查找存储时间戳为指定的消息的物理偏移量
      *
-     * @param topic Topic of the message.
-     * @param queueId Queue ID.
-     * @param timestamp Timestamp to look up.
-     * @return physical offset which matches.
+     * @param topic 消息的主题
+     * @param queueId 队列ID
+     * @param timestamp 要查找的时间戳
+     * @return 匹配的物理偏移
      */
     long getOffsetInQueueByTime(final String topic, final int queueId, final long timestamp);
 
@@ -245,9 +245,9 @@ public interface MessageStore {
         final long end);
 
     /**
-     * Update HA master address.
+     * 更新HA主地址
      *
-     * @param newAddr new address.
+     * @param newAddr 新地址.
      */
     void updateHaMasterAddress(final String newAddr);
 
@@ -279,12 +279,12 @@ public interface MessageStore {
     void cleanExpiredConsumerQueue();
 
     /**
-     * Check if the given message has been swapped out of the memory.
+     * 检查给定的消息是否已从内存中交换出去.
      *
-     * @param topic topic.
-     * @param queueId queue ID.
-     * @param consumeOffset consume queue offset.
-     * @return true if the message is no longer in memory; false otherwise.
+     * @param topic 主题.
+     * @param queueId 队列id.
+     * @param consumeOffset 消费队列偏移量.
+     * @return 如果消息不再在内存中，则为true；否则为false.
      */
     boolean checkInDiskByConsumeOffset(final String topic, final int queueId, long consumeOffset);
 

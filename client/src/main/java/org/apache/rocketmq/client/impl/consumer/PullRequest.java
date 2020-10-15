@@ -38,6 +38,9 @@ public class PullRequest {
      * 下一个偏移量
      */
     private long nextOffset;
+    /**
+     * 首次锁
+     */
     private boolean lockedFirst = false;
 
     public boolean isLockedFirst() {

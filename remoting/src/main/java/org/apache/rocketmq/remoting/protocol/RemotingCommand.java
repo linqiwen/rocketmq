@@ -306,6 +306,9 @@ public class RemotingCommand {
         return requestId.incrementAndGet();
     }
 
+    /**
+     * 获取序列化类型
+     */
     public static SerializeType getSerializeTypeConfigInThisServer() {
         return serializeTypeConfigInThisServer;
     }
@@ -375,41 +378,54 @@ public class RemotingCommand {
                     //如果属性不是this
                     if (!fieldName.startsWith("this")) {
                         try {
+                            //从extFields获取属性值
                             String value = this.extFields.get(fieldName);
                             if (null == value) {
+                                //如果属性值为空，但是属性打上CFNotNull注解，抛出RemotingCommandException异常
                                 if (!isFieldNullable(field)) {
                                     throw new RemotingCommandException("the custom field <" + fieldName + "> is null");
                                 }
                                 continue;
                             }
 
+                            //这样才能对属性进行设置
                             field.setAccessible(true);
+                            //获取属性类型的规范名称
                             String type = getCanonicalName(field.getType());
                             Object valueParsed;
 
                             if (type.equals(STRING_CANONICAL_NAME)) {
+                                //是字符串直接赋值
                                 valueParsed = value;
                             } else if (type.equals(INTEGER_CANONICAL_NAME_1) || type.equals(INTEGER_CANONICAL_NAME_2)) {
+                                //如果属性是Integer或者int，将value转成Integer
                                 valueParsed = Integer.parseInt(value);
                             } else if (type.equals(LONG_CANONICAL_NAME_1) || type.equals(LONG_CANONICAL_NAME_2)) {
+                                //如果属性是Long或者long，将value转成Long
                                 valueParsed = Long.parseLong(value);
                             } else if (type.equals(BOOLEAN_CANONICAL_NAME_1) || type.equals(BOOLEAN_CANONICAL_NAME_2)) {
+                                //如果属性是Boolean或者boolean，将value转成Boolean
                                 valueParsed = Boolean.parseBoolean(value);
                             } else if (type.equals(DOUBLE_CANONICAL_NAME_1) || type.equals(DOUBLE_CANONICAL_NAME_2)) {
+                                //如果属性是Double或者double，将value转成double
                                 valueParsed = Double.parseDouble(value);
                             } else {
+                                //类型不支持打印异常
                                 throw new RemotingCommandException("the custom field <" + fieldName + "> type is not supported");
                             }
 
+                            //设置属性值
                             field.set(objectHeader, valueParsed);
 
                         } catch (Throwable e) {
+                            //出现异常，打印日志
                             log.error("Failed field [{}] decoding", fieldName, e);
                         }
                     }
                 }
             }
 
+            //检查属性
             objectHeader.checkFields();
         }
 
@@ -444,12 +460,19 @@ public class RemotingCommand {
         return NULLABLE_FIELD_CACHE.get(field);
     }
 
+    /**
+     * 得到类型的规范名称
+     */
     private String getCanonicalName(Class clazz) {
+        //先从缓存获取
         String name = CANONICAL_NAME_CACHE.get(clazz);
 
+        //缓存为空
         if (name == null) {
+            //类型的规范名称
             name = clazz.getCanonicalName();
             synchronized (CANONICAL_NAME_CACHE) {
+                //加入缓存
                 CANONICAL_NAME_CACHE.put(clazz, name);
             }
         }

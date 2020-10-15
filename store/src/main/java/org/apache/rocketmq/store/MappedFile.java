@@ -178,6 +178,11 @@ public class MappedFile extends ReferenceResource {
         }
     }
 
+    /**
+     * 返回此抽象路径名表示的文件上次修改的时间
+     *
+     * @return 上次的修改时间
+     */
     public long getLastModifiedTimestamp() {
         return this.file.lastModified();
     }
@@ -401,13 +406,25 @@ public class MappedFile extends ReferenceResource {
         return null;
     }
 
+    /**
+     * 根据MappedByteBuffer位置获取MappedByteBuffer视图
+     *
+     * @param pos MappedByteBuffer位置
+     * @return 查询到MappedByteBuffer结果
+     */
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
+        //MappedByteBuffer目前读位置
         int readPosition = getReadPosition();
+        //传入的位置小于目前读的位置
         if (pos < readPosition && pos >= 0) {
             if (this.hold()) {
+                //获取mappedByteBuffer视图
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
+                //byteBuffer设置成从当前位置开始读
                 byteBuffer.position(pos);
+                //读取的元素大小
                 int size = readPosition - pos;
+                //就是从pos位置开始读size元素的ByteBuffer
                 ByteBuffer byteBufferNew = byteBuffer.slice();
                 byteBufferNew.limit(size);
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);

@@ -129,6 +129,9 @@ public class MessageConst {
      */
     public static final String KEY_SEPARATOR = " ";
 
+    /**
+     * 系统的常量列表
+     */
     public static final HashSet<String> STRING_HASH_SET = new HashSet<String>();
 
     static {

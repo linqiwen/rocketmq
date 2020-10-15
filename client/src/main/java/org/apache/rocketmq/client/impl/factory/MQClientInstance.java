@@ -93,6 +93,9 @@ public class MQClientInstance {
     private final InternalLogger log = ClientLogger.getLog();
     private final ClientConfig clientConfig;
     private final int instanceIndex;
+    /**
+     * 客户端id
+     */
     private final String clientId;
     private final long bootTimestamp = System.currentTimeMillis();
     /**
@@ -110,6 +113,9 @@ public class MQClientInstance {
     private final NettyClientConfig nettyClientConfig;
     private final MQClientAPIImpl mQClientAPIImpl;
     private final MQAdminImpl mQAdminImpl;
+    /**
+     * 主题的路由信息
+     */
     private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
     private final Lock lockNamesrv = new ReentrantLock();
     private final Lock lockHeartbeat = new ReentrantLock();
@@ -208,10 +214,13 @@ public class MQClientInstance {
         } else {
             //获取topic路由信息中的所有队列信息
             List<QueueData> qds = route.getQueueDatas();
+            //对队列信息根据brokerName进行排序
             Collections.sort(qds);
             for (QueueData qd : qds) {
                 if (PermName.isWriteable(qd.getPerm())) {
+                    //消息队列的broker信息
                     BrokerData brokerData = null;
+                    //获取消息队列的broker信息
                     for (BrokerData bd : route.getBrokerDatas()) {
                         if (bd.getBrokerName().equals(qd.getBrokerName())) {
                             brokerData = bd;
@@ -219,10 +228,12 @@ public class MQClientInstance {
                         }
                     }
 
+                    //消息队列的broker信息为空，直接跳过
                     if (null == brokerData) {
                         continue;
                     }
 
+                    //消息队列的不是主broker，跳过
                     if (!brokerData.getBrokerAddrs().containsKey(MixAll.MASTER_ID)) {
                         continue;
                     }
@@ -241,8 +252,16 @@ public class MQClientInstance {
         return info;
     }
 
+    /**
+     * 获取只读的消息队列列表
+     *
+     * @param topic 主题
+     * @param route 主题的路由信息
+     * @return 只读的消息队列列表
+     */
     public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
         Set<MessageQueue> mqList = new HashSet<MessageQueue>();
+        //从主题的路由信息中获取队列数据
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
             if (PermName.isReadable(qd.getPerm())) {
@@ -664,17 +683,22 @@ public class MQClientInstance {
                     TopicRouteData topicRouteData;
                     //如果isDefault为true，defaultMQProducer不为空
                     if (isDefault && defaultMQProducer != null) {
-                        //获取TBW102的路由信息
+                        //获取TBW102的路由信息，超时时间3秒
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
                         if (topicRouteData != null) {
+                            //遍历主题中的所有队列数据
                             for (QueueData data : topicRouteData.getQueueDatas()) {
+                                //比较默认主题要创建的队列数和队列的读队列数，获取最小值
                                 int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
+                                //读队列数设置为queueNums
                                 data.setReadQueueNums(queueNums);
+                                //写队列数设置为queueNums
                                 data.setWriteQueueNums(queueNums);
                             }
                         }
                     } else {
+                        //从nameServer中获取主题的路由信息
                         topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
                     }
                     if (topicRouteData != null) {
@@ -684,27 +708,35 @@ public class MQClientInstance {
                         boolean changed = topicRouteDataIsChange(old, topicRouteData);
                         //如果路由信息未改变，判断生产者和消费者的路由信息是否需要改变
                         if (!changed) {
+                            //判断生产者、消费者的主题路由信息是否需要更新
                             changed = this.isNeedUpdateTopicRouteInfo(topic);
                         } else {
+                            //打印日志
                             log.info("the topic[{}] route info changed, old[{}] ,new[{}]", topic, old, topicRouteData);
                         }
 
+                        //如果路由信息改变
                         if (changed) {
+                            //获取到克隆的路由信息
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
 
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                                //设置broker信息
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }
 
                             // Update Pub info
                             {
+                                //topic的路由信息转换成topic的发布信息
                                 TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
+                                //主题有路由信息
                                 publishInfo.setHaveTopicRouterInfo(true);
                                 Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
                                 while (it.hasNext()) {
                                     Entry<String, MQProducerInner> entry = it.next();
                                     MQProducerInner impl = entry.getValue();
                                     if (impl != null) {
+                                        //更新主题的发布信息
                                         impl.updateTopicPublishInfo(topic, publishInfo);
                                     }
                                 }
@@ -718,11 +750,13 @@ public class MQClientInstance {
                                     Entry<String, MQConsumerInner> entry = it.next();
                                     MQConsumerInner impl = entry.getValue();
                                     if (impl != null) {
+                                        //更新主题的队列信息
                                         impl.updateTopicSubscribeInfo(topic, subscribeInfo);
                                     }
                                 }
                             }
                             log.info("topicRouteTable.put. Topic = {}, TopicRouteData[{}]", topic, cloneTopicRouteData);
+                            //插入主题的路由信息
                             this.topicRouteTable.put(topic, cloneTopicRouteData);
                             return true;
                         }
@@ -886,6 +920,7 @@ public class MQClientInstance {
                 Entry<String, MQConsumerInner> entry = it.next();
                 MQConsumerInner impl = entry.getValue();
                 if (impl != null) {
+                    //判断每个消费者的主题信息是否更新
                     result = impl.isSubscribeTopicNeedUpdate(topic);
                 }
             }
@@ -1044,7 +1079,7 @@ public class MQClientInstance {
     }
 
     /**
-     * 重新平衡
+     * 重新分配
      */
     public void doRebalance() {
         //遍历所有消费组的消费者
@@ -1053,8 +1088,10 @@ public class MQClientInstance {
             MQConsumerInner impl = entry.getValue();
             if (impl != null) {
                 try {
+                    //对每个消费者进行重新分配
                     impl.doRebalance();
                 } catch (Throwable e) {
+                    //出现异常打印日志
                     log.error("doRebalance exception", e);
                 }
             }
@@ -1083,17 +1120,24 @@ public class MQClientInstance {
         //是否找到broker信息
         boolean found = false;
 
-        //key：brokerId(主broker的brokerId为0)，value：broker的地址
+        //key：brokerName（brokerId(主broker的brokerId为0)），value：broker的地址
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
+        //存在brokerName的broker信息
         if (map != null && !map.isEmpty()) {
+            //查询broker地址不为空的broker信息
             for (Map.Entry<Long, String> entry : map.entrySet()) {
+                //brokerId
                 Long id = entry.getKey();
+                //broker地址
                 brokerAddr = entry.getValue();
                 if (brokerAddr != null) {
+                    //broker地址不为空，查询到broker信息
                     found = true;
                     if (MixAll.MASTER_ID == id) {
+                        //broker是主，slave置为false
                         slave = false;
                     } else {
+                        //broker是从，slave置为true
                         slave = true;
                     }
                     break;
@@ -1102,13 +1146,20 @@ public class MQClientInstance {
             } // end of for
         }
 
+        //如果查询到，返回
         if (found) {
             return new FindBrokerResult(brokerAddr, slave, findBrokerVersion(brokerName, brokerAddr));
         }
-
+        //否则返回空
         return null;
     }
 
+    /**
+     * 根据broker名称查询主broker地址
+     *
+     * @param brokerName broker名称
+     * @return broker地址
+     */
     public String findBrokerAddressInPublish(final String brokerName) {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
@@ -1118,33 +1169,51 @@ public class MQClientInstance {
         return null;
     }
 
+    /**
+     * 在订阅中查找broker地址
+     *
+     * @param brokerName broker名称
+     * @param brokerId brokerId
+     * @param onlyThisBroker 只查询这个broker
+     */
     public FindBrokerResult findBrokerAddressInSubscribe(
         final String brokerName,
         final long brokerId,
         final boolean onlyThisBroker
     ) {
         String brokerAddr = null;
+        //主机或从机标识
         boolean slave = false;
+        //是否查询到broker地址
         boolean found = false;
 
+        //根据broker名称查询brokerId和broker地址的映射map
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
+            //broker地址
             brokerAddr = map.get(brokerId);
+            //设置主机或从机标识
             slave = brokerId != MixAll.MASTER_ID;
+            //broker地址不为空，found设置为true
             found = brokerAddr != null;
 
             if (!found && !onlyThisBroker) {
+                //map中随机选择一个broker信息
                 Entry<Long, String> entry = map.entrySet().iterator().next();
+                //broker地址
                 brokerAddr = entry.getValue();
+                //设置主机或从机标识
                 slave = entry.getKey() != MixAll.MASTER_ID;
+                //broker地址不为空，found设置为true
                 found = true;
             }
         }
 
         if (found) {
+            //查询到返回broker信息
             return new FindBrokerResult(brokerAddr, slave, findBrokerVersion(brokerName, brokerAddr));
         }
-
+        //否则返回空
         return null;
     }
 
@@ -1156,12 +1225,15 @@ public class MQClientInstance {
      * @return broker版本号
      */
     public int findBrokerVersion(String brokerName, String brokerAddr) {
+        //获取broker地址和版本号的map
         if (this.brokerVersionTable.containsKey(brokerName)) {
+            //broker地址和版本号的map含有传入进来的broker地址
             if (this.brokerVersionTable.get(brokerName).containsKey(brokerAddr)) {
+                //获取版本号
                 return this.brokerVersionTable.get(brokerName).get(brokerAddr);
             }
         }
-        //To do need to fresh the version
+        //需要新的版本
         return 0;
     }
 

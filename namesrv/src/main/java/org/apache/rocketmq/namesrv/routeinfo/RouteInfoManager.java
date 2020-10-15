@@ -964,11 +964,15 @@ public class RouteInfoManager {
                         this.topicQueueTable.entrySet().iterator();
                     //遍历所有的主题和其队列数据
                     while (topicTableIt.hasNext()) {
-                        //获取主题下的队列数据
+                        //获取主题下的所有队列数据
                         Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
+                        //主题
                         String topic = topicEntry.getKey();
+                        //队列数据列表
                         List<QueueData> queueDatas = topicEntry.getValue();
+                        //遍历队列数据列表
                         for (QueueData queueData : queueDatas) {
+                            //获取brokerName下的队列数据
                             if (brokerName.equals(queueData.getBrokerName())) {
                                 topicList.getTopicList().add(topic);
                                 break;
@@ -977,9 +981,11 @@ public class RouteInfoManager {
                     }
                 }
             } finally {
+                //释放锁
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
+            //打印日志
             log.error("getAllTopicList Exception", e);
         }
 
@@ -990,22 +996,29 @@ public class RouteInfoManager {
         TopicList topicList = new TopicList();
         try {
             try {
+                //获取可中断读锁
                 this.lock.readLock().lockInterruptibly();
                 Iterator<Entry<String, List<QueueData>>> topicTableIt =
                     this.topicQueueTable.entrySet().iterator();
+                //遍历所有的主题和其队列数据
                 while (topicTableIt.hasNext()) {
                     Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
+                    //主题
                     String topic = topicEntry.getKey();
+                    //队列数据
                     List<QueueData> queueDatas = topicEntry.getValue();
                     if (queueDatas != null && queueDatas.size() > 0
                         && TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSynFlag())) {
+                        //将有unitFlag标识的主题加入进来
                         topicList.getTopicList().add(topic);
                     }
                 }
             } finally {
+                //释放锁
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
+            //出现异常打印日志
             log.error("getAllTopicList Exception", e);
         }
 
@@ -1016,22 +1029,29 @@ public class RouteInfoManager {
         TopicList topicList = new TopicList();
         try {
             try {
+                //获取可中断读锁
                 this.lock.readLock().lockInterruptibly();
                 Iterator<Entry<String, List<QueueData>>> topicTableIt =
                     this.topicQueueTable.entrySet().iterator();
+                //遍历所有的主题和其队列数据
                 while (topicTableIt.hasNext()) {
                     Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
+                    //主题
                     String topic = topicEntry.getKey();
+                    //队列数据
                     List<QueueData> queueDatas = topicEntry.getValue();
                     if (queueDatas != null && queueDatas.size() > 0
                         && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSynFlag())) {
+                        //将有unitSubFlag标识的主题加入进来
                         topicList.getTopicList().add(topic);
                     }
                 }
             } finally {
+                //释放锁
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
+            //出现异常打印日志
             log.error("getAllTopicList Exception", e);
         }
 
@@ -1042,23 +1062,29 @@ public class RouteInfoManager {
         TopicList topicList = new TopicList();
         try {
             try {
+                //获取可中断读锁
                 this.lock.readLock().lockInterruptibly();
                 Iterator<Entry<String, List<QueueData>>> topicTableIt =
                     this.topicQueueTable.entrySet().iterator();
                 while (topicTableIt.hasNext()) {
                     Entry<String, List<QueueData>> topicEntry = topicTableIt.next();
+                    //主题
                     String topic = topicEntry.getKey();
+                    //队列数据
                     List<QueueData> queueDatas = topicEntry.getValue();
                     if (queueDatas != null && queueDatas.size() > 0
                         && !TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSynFlag())
                         && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSynFlag())) {
+                        //将有unitSubFlag标识并且没有unitFlag的主题加入进来
                         topicList.getTopicList().add(topic);
                     }
                 }
             } finally {
+                //释放锁
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
+            //出现异常打印日志
             log.error("getAllTopicList Exception", e);
         }
 

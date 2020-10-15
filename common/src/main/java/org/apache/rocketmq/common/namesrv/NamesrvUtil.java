@@ -16,7 +16,12 @@
  */
 
 package org.apache.rocketmq.common.namesrv;
-
+/**
+ * NameSrv工具类
+ */
 public class NamesrvUtil {
+    /**
+     * 有序主题配置
+     */
     public static final String NAMESPACE_ORDER_TOPIC_CONFIG = "ORDER_TOPIC_CONFIG";
 }

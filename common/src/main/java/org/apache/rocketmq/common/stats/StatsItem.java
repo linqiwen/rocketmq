@@ -24,20 +24,35 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.logging.InternalLogger;
 
+/**
+ * 数据项
+ */
 public class StatsItem {
 
     private final AtomicLong value = new AtomicLong(0);
 
     private final AtomicLong times = new AtomicLong(0);
 
+    /**
+     * 分钟的调用次数
+     */
     private final LinkedList<CallSnapshot> csListMinute = new LinkedList<CallSnapshot>();
 
+    /**
+     * 小时的调用次数
+     */
     private final LinkedList<CallSnapshot> csListHour = new LinkedList<CallSnapshot>();
 
+    /**
+     * 天的调用次数
+     */
     private final LinkedList<CallSnapshot> csListDay = new LinkedList<CallSnapshot>();
 
     private final String statsName;
     private final String statsKey;
+    /**
+     * 统计线程池
+     */
     private final ScheduledExecutorService scheduledExecutorService;
     private final InternalLogger log;
 
@@ -49,6 +64,11 @@ public class StatsItem {
         this.log = log;
     }
 
+    /**
+     * 计算统计数据
+     *
+     * @param csList 调用的快照列表
+     */
     private static StatsSnapshot computeStatsData(final LinkedList<CallSnapshot> csList) {
         StatsSnapshot statsSnapshot = new StatsSnapshot();
         synchronized (csList) {
@@ -75,20 +95,36 @@ public class StatsItem {
         return statsSnapshot;
     }
 
+    /**
+     * 获取分钟的统计数据
+     *
+     * @return 统计快照
+     */
     public StatsSnapshot getStatsDataInMinute() {
         return computeStatsData(this.csListMinute);
     }
 
+    /**
+     * 获取小时的统计数据
+     *
+     * @return 统计快照
+     */
     public StatsSnapshot getStatsDataInHour() {
         return computeStatsData(this.csListHour);
     }
 
+    /**
+     * 获取天的统计数据
+     *
+     * @return 统计快照
+     */
     public StatsSnapshot getStatsDataInDay() {
         return computeStatsData(this.csListDay);
     }
 
     public void init() {
 
+        //每隔10秒执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -99,6 +135,7 @@ public class StatsItem {
             }
         }, 0, 10, TimeUnit.SECONDS);
 
+        //每隔10分钟执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -109,6 +146,7 @@ public class StatsItem {
             }
         }, 0, 10, TimeUnit.MINUTES);
 
+        //每隔1小时执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -119,6 +157,7 @@ public class StatsItem {
             }
         }, 0, 1, TimeUnit.HOURS);
 
+        //每60秒执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -129,6 +168,7 @@ public class StatsItem {
             }
         }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60, TimeUnit.MILLISECONDS);
 
+        //每一小时执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -139,6 +179,7 @@ public class StatsItem {
             }
         }, Math.abs(UtilAll.computNextHourTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60, TimeUnit.MILLISECONDS);
 
+        //每24小时执行一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -150,36 +191,51 @@ public class StatsItem {
         }, Math.abs(UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis()) - 2000, 1000 * 60 * 60 * 24, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * 在秒内取样
+     */
     public void samplingInSeconds() {
         synchronized (this.csListMinute) {
             this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
                 .get()));
             if (this.csListMinute.size() > 7) {
+                //如果元素大于7个，移除首元素
                 this.csListMinute.removeFirst();
             }
         }
     }
 
+    /**
+     * 在分钟内取样
+     */
     public void samplingInMinutes() {
         synchronized (this.csListHour) {
             this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
                 .get()));
             if (this.csListHour.size() > 7) {
+                //如果元素大于7个，移除首元素
                 this.csListHour.removeFirst();
             }
         }
     }
 
+    /**
+     * 在小时内取样
+     */
     public void samplingInHour() {
         synchronized (this.csListDay) {
             this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
                 .get()));
             if (this.csListDay.size() > 25) {
+                //如果元素大于25个，移除首元素
                 this.csListDay.removeFirst();
             }
         }
     }
 
+    /**
+     * 打印分钟的统计数据
+     */
     public void printAtMinutes() {
         StatsSnapshot ss = computeStatsData(this.csListMinute);
         log.info(String.format("[%s] [%s] Stats In One Minute, SUM: %d TPS: %.2f AVGPT: %.2f",
@@ -190,6 +246,9 @@ public class StatsItem {
             ss.getAvgpt()));
     }
 
+    /**
+     * 打印小时的统计数据
+     */
     public void printAtHour() {
         StatsSnapshot ss = computeStatsData(this.csListHour);
         log.info(String.format("[%s] [%s] Stats In One Hour, SUM: %d TPS: %.2f AVGPT: %.2f",
@@ -200,6 +259,9 @@ public class StatsItem {
             ss.getAvgpt()));
     }
 
+    /**
+     * 打印天的统计数据
+     */
     public void printAtDay() {
         StatsSnapshot ss = computeStatsData(this.csListDay);
         log.info(String.format("[%s] [%s] Stats In One Day, SUM: %d TPS: %.2f AVGPT: %.2f",
@@ -227,10 +289,22 @@ public class StatsItem {
     }
 }
 
+/**
+ * 调用快照
+ */
 class CallSnapshot {
+    /**
+     * 时间戳
+     */
     private final long timestamp;
+    /**
+     * 次数
+     */
     private final long times;
 
+    /**
+     * 值
+     */
     private final long value;
 
     public CallSnapshot(long timestamp, long times, long value) {

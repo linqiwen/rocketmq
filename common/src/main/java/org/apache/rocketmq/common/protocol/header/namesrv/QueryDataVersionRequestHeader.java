@@ -21,13 +21,28 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+/**
+ * 查询数据版本请求头
+ */
 public class QueryDataVersionRequestHeader implements CommandCustomHeader {
+    /**
+     * broker名称
+     */
     @CFNotNull
     private String brokerName;
+    /**
+     * broker地址
+     */
     @CFNotNull
     private String brokerAddr;
+    /**
+     * 集群名称
+     */
     @CFNotNull
     private String clusterName;
+    /**
+     * brokerId
+     */
     @CFNotNull
     private Long brokerId;
 

@@ -63,12 +63,12 @@ public class NettyClientConfig {
      */
     private boolean clientPooledByteBufAllocatorEnable = false;
     /**
-     * 客户端关闭socket如果超时开关
+     * 如果超时客户端关闭socket开关
      */
     private boolean clientCloseSocketIfTimeout = false;
 
     /**
-     * 使用TLS开关
+     * TLS开关
      */
     private boolean useTLS;
 

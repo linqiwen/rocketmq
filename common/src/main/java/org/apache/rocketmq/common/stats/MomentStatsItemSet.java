@@ -26,6 +26,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.logging.InternalLogger;
 
+/**
+ * 瞬时统计项目集
+ */
 public class MomentStatsItemSet {
     private final ConcurrentMap<String/* key */, MomentStatsItem> statsItemTable =
         new ConcurrentHashMap<String, MomentStatsItem>(128);
@@ -49,7 +52,7 @@ public class MomentStatsItemSet {
     }
 
     public void init() {
-
+        //5分钟执行一次，延迟1分钟
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {

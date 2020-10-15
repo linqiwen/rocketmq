@@ -20,7 +20,7 @@ package org.apache.rocketmq.filter.expression;
 import java.util.Map;
 
 /**
- * Empty context.
+ * 空的上下文
  */
 public class EmptyEvaluationContext implements EvaluationContext {
     @Override

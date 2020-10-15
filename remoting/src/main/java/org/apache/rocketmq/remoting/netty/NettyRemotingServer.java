@@ -156,9 +156,12 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
         if (tlsMode != TlsMode.DISABLED) {
             try {
+                //如果Tls可用，构造SSL上下文
                 sslContext = TlsHelper.buildSslContext(false);
+                //打印日志
                 log.info("SSLContext created for server");
             } catch (CertificateException e) {
+                //出现异常打印日志
                 log.error("Failed to create SSLContext for server", e);
             } catch (IOException e) {
                 log.error("Failed to create SSLContext for server", e);
@@ -396,10 +399,23 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    /**
+     * 客户端远程服务响应处理器
+     * <p>
+     *     设置远程命令并且唤醒等待线程
+     * </p>
+     */
     class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
+        /**
+         * 远程通道有可读信息
+         *
+         * @param ctx 通道处理器上下文
+         * @param msg 远程消息
+         */
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+            //处理远程命令
             processMessageReceived(ctx, msg);
         }
     }

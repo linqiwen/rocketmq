@@ -71,27 +71,50 @@ public class TransactionalMessageBridge {
 
     }
 
+    /**
+     * 获取消息队列的消费偏移量
+     *
+     * @param mq 消息队列
+     * @return 消费偏移量
+     */
     public long fetchConsumeOffset(MessageQueue mq) {
+        //获取消费偏移量
         long offset = brokerController.getConsumerOffsetManager().queryOffset(TransactionalMessageUtil.buildConsumerGroup(),
             mq.getTopic(), mq.getQueueId());
         if (offset == -1) {
+            //如果消息队列第一次被消费，获取消息队列的起始偏移量
             offset = store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId());
         }
         return offset;
     }
 
+    /**
+     * 获取主题下所有读消息队列
+     *
+     * @param topic 主题
+     * @return 所有读消息队列
+     */
     public Set<MessageQueue> fetchMessageQueues(String topic) {
+        //创建消息队列列表
         Set<MessageQueue> mqSet = new HashSet<>();
+        //获取主题配置
         TopicConfig topicConfig = selectTopicConfig(topic);
+        //主题配置不为空，并且主题的读队列数量大于0
         if (topicConfig != null && topicConfig.getReadQueueNums() > 0) {
             for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
+                //创建消息队列
                 MessageQueue mq = new MessageQueue();
+                //设置主题
                 mq.setTopic(topic);
+                //设置broker名称
                 mq.setBrokerName(brokerController.getBrokerConfig().getBrokerName());
+                //设置队列id
                 mq.setQueueId(i);
+                //将队列加到队列集合中
                 mqSet.add(mq);
             }
         }
+        //返回队列列表
         return mqSet;
     }
 
@@ -280,9 +303,17 @@ public class TransactionalMessageBridge {
         return msgInner;
     }
 
+    /**
+     * 获取主题配置
+     *
+     * @param topic 主题
+     * @return 主题配置
+     */
     private TopicConfig selectTopicConfig(String topic) {
+        //根据主题获取主题配置
         TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (topicConfig == null) {
+            //如果主题配置不存在，创建主题配置
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
                 topic, 1, PermName.PERM_WRITE | PermName.PERM_READ, 0);
         }

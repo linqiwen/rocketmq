@@ -19,7 +19,13 @@ package org.apache.rocketmq.broker;
 
 import java.io.File;
 
+/**
+ * Broker配置文件路径帮助类
+ */
 public class BrokerPathConfigHelper {
+    /**
+     * broker配置文件路径
+     */
     private static String brokerConfigPath = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "config" + File.separator + "broker.properties";
 
@@ -31,18 +37,30 @@ public class BrokerPathConfigHelper {
         brokerConfigPath = path;
     }
 
+    /**
+     * 获取主题配置路径
+     */
     public static String getTopicConfigPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "topics.json";
     }
 
+    /**
+     * 获取消费者偏移量路径
+     */
     public static String getConsumerOffsetPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "consumerOffset.json";
     }
 
+    /**
+     * 获取订阅组路径
+     */
     public static String getSubscriptionGroupPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "subscriptionGroup.json";
     }
 
+    /**
+     * 获取消费过滤器路径
+     */
     public static String getConsumerFilterPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "consumerFilter.json";
     }

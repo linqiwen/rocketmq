@@ -21,8 +21,14 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+/**
+ * 默认的消息过滤器
+ */
 public class DefaultMessageFilter implements MessageFilter {
 
+    /**
+     * 订阅数据
+     */
     private SubscriptionData subscriptionData;
 
     public DefaultMessageFilter(final SubscriptionData subscriptionData) {
@@ -35,11 +41,14 @@ public class DefaultMessageFilter implements MessageFilter {
             return true;
         }
 
+        //如果是类过滤模式
         if (subscriptionData.isClassFilterMode()) {
             return true;
         }
 
+        //如果是订阅所有
         return subscriptionData.getSubString().equals(SubscriptionData.SUB_ALL)
+                //或者是订阅的主题数据包含消息的tagsCode
             || subscriptionData.getCodeSet().contains(tagsCode.intValue());
     }
 

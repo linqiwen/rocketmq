@@ -48,6 +48,9 @@ public class MixAll {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
+    /**
+     * rocketMq主目录
+     */
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
@@ -57,7 +60,13 @@ public class MixAll {
     public static final String WS_DOMAIN_SUBGROUP = System.getProperty("rocketmq.namesrv.domain.subgroup", "nsaddr");
     //http://jmenv.tbsite.net:8080/rocketmq/nsaddr
     //public static final String WS_ADDR = "http://" + WS_DOMAIN_NAME + ":8080/rocketmq/" + WS_DOMAIN_SUBGROUP;
+    /**
+     * 自动创建topic
+     */
     public static final String AUTO_CREATE_TOPIC_KEY_TOPIC = "TBW102"; // Will be created at broker when isAutoCreateTopicEnable
+    /**
+     * 基准测试主题
+     */
     public static final String BENCHMARK_TOPIC = "BenchmarkTest";
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
@@ -68,6 +77,9 @@ public class MixAll {
     public static final String SELF_TEST_PRODUCER_GROUP = "SELF_TEST_P_GROUP";
     public static final String SELF_TEST_CONSUMER_GROUP = "SELF_TEST_C_GROUP";
     public static final String SELF_TEST_TOPIC = "SELF_TEST_TOPIC";
+    /**
+     * 偏移量移除事件
+     */
     public static final String OFFSET_MOVED_EVENT = "OFFSET_MOVED_EVENT";
     public static final String ONS_HTTP_PROXY_GROUP = "CID_ONS-HTTP-PROXY";
     public static final String CID_ONSAPI_PERMISSION_GROUP = "CID_ONSAPI_PERMISSION";
@@ -77,23 +89,36 @@ public class MixAll {
 
     public static final List<String> LOCAL_INET_ADDRESS = getLocalInetAddress();
     public static final String LOCALHOST = localhost();
+    /**
+     * 默认编码，UTF-8
+     */
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final long MASTER_ID = 0L;
     public static final long CURRENT_JVM_PID = getPID();
 
+    /**
+     * 重试组主题前缀
+     */
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
 
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
     public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";
+    //默认的区域id
     public static final String DEFAULT_TRACE_REGION_ID = "DefaultRegion";
     public static final String CONSUME_CONTEXT_TYPE = "ConsumeContextType";
 
+    /**
+     * 半消息存放主题
+     */
     public static final String RMQ_SYS_TRANS_HALF_TOPIC = "RMQ_SYS_TRANS_HALF_TOPIC";
     /**
      * 系统跟踪topic
      */
     public static final String RMQ_SYS_TRACE_TOPIC = "RMQ_SYS_TRACE_TOPIC";
+    /**
+     * 已被处理半消息主题
+     */
     public static final String RMQ_SYS_TRANS_OP_HALF_TOPIC = "RMQ_SYS_TRANS_OP_HALF_TOPIC";
     public static final String CID_SYS_RMQ_TRANS = "CID_RMQ_SYS_TRANS";
     public static final String ACL_CONF_TOOLS_FILE = "/conf/tools.yml";
@@ -124,10 +149,19 @@ public class MixAll {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
+    /**
+     * broker的VIP通道
+     *
+     * @param isChange 是否改变
+     * @param brokerAddr broker地址
+     */
     public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {
         if (isChange) {
+            //ip、端口号
             String[] ipAndPort = brokerAddr.split(":");
+            //端口号减2，构建新的broker地址
             String brokerAddrNew = ipAndPort[0] + ":" + (Integer.parseInt(ipAndPort[1]) - 2);
+            //返回新的broker地址
             return brokerAddrNew;
         } else {
             return brokerAddr;
@@ -192,13 +226,14 @@ public class MixAll {
         FileWriter fileWriter = null;
 
         try {
-            //将要存储内容存储到文件中
             fileWriter = new FileWriter(file);
+            //将要存储内容存储到文件中
             fileWriter.write(str);
         } catch (IOException e) {
             throw e;
         } finally {
             if (fileWriter != null) {
+                //关闭文件流
                 fileWriter.close();
             }
         }
@@ -223,21 +258,26 @@ public class MixAll {
      */
     public static String file2String(final File file) throws IOException {
         if (file.exists()) {
+            //创建文件内容长度的字节数组
             byte[] data = new byte[(int) file.length()];
             boolean result;
 
             FileInputStream inputStream = null;
             try {
                 inputStream = new FileInputStream(file);
+                //读取文件内容
                 int len = inputStream.read(data);
+                //文件内容是否等于预期的值
                 result = len == data.length;
             } finally {
                 if (inputStream != null) {
+                    //关闭流
                     inputStream.close();
                 }
             }
 
             if (result) {
+                //返回文件内容
                 return new String(data);
             }
         }
@@ -267,28 +307,51 @@ public class MixAll {
         return null;
     }
 
+    /**
+     * 打印对象的所有属性
+     *
+     * @param logger 日志
+     * @param object 对象
+     */
     public static void printObjectProperties(final InternalLogger logger, final Object object) {
         printObjectProperties(logger, object, false);
     }
 
+    /**
+     * 打印对象的属性
+     *
+     * @param logger 日志
+     * @param object 对象
+     * @param onlyImportantField {@code true}只打印对象的重要属性
+     */
     public static void printObjectProperties(final InternalLogger logger, final Object object,
         final boolean onlyImportantField) {
+        //获取所有属性
         Field[] fields = object.getClass().getDeclaredFields();
+        //遍历所有属性
         for (Field field : fields) {
+            //判断是否静态属性，如果是静态属性直接跳过
             if (!Modifier.isStatic(field.getModifiers())) {
+                //获取属性名
                 String name = field.getName();
+                //如果属性名是this直接跳过
                 if (!name.startsWith("this")) {
                     Object value = null;
                     try {
+                        //反射对象禁止Java语言访问检查，这样才可以获取属性值
                         field.setAccessible(true);
+                        //获取属性值
                         value = field.get(object);
                         if (null == value) {
+                            //属性值为null，设置为空串
                             value = "";
                         }
                     } catch (IllegalAccessException e) {
+                        //出现异常打印日志
                         log.error("Failed to obtain object properties", e);
                     }
 
+                    //如果是只打印对象的重要属性，并且不是重要的属性，即没有ImportantField注解，直接跳过
                     if (onlyImportantField) {
                         Annotation annotation = field.getAnnotation(ImportantField.class);
                         if (null == annotation) {
@@ -297,6 +360,7 @@ public class MixAll {
                     }
 
                     if (logger != null) {
+                        //如果日志记录器不为空，打印属性名和属性值
                         logger.info(name + "=" + value);
                     } else {
                     }
@@ -354,41 +418,66 @@ public class MixAll {
         return properties;
     }
 
+    /**
+     * 将属性列表转成对象
+     *
+     * @param p 属性列表
+     * @param object 对象
+     */
     public static void properties2Object(final Properties p, final Object object) {
+        //获取对象的所有方法
         Method[] methods = object.getClass().getMethods();
+        //遍历的所有方法
         for (Method method : methods) {
+            //获取方法名
             String mn = method.getName();
+            //过滤含有set方法
             if (mn.startsWith("set")) {
                 try {
+                    //获取属性名，除了第一个字符
                     String tmp = mn.substring(4);
+                    //获取属性名的第一个字符
                     String first = mn.substring(3, 4);
 
+                    //将属性名第一个字符转成小写加上其余字符
                     String key = first.toLowerCase() + tmp;
+                    //获取属性值
                     String property = p.getProperty(key);
                     if (property != null) {
+                        //获取方法的参数类型
                         Class<?>[] pt = method.getParameterTypes();
+                        //方法存在参数
                         if (pt != null && pt.length > 0) {
+                            //获取第一个参数的简称
                             String cn = pt[0].getSimpleName();
                             Object arg = null;
                             if (cn.equals("int") || cn.equals("Integer")) {
+                                //参数类型是int或者Integer
                                 arg = Integer.parseInt(property);
                             } else if (cn.equals("long") || cn.equals("Long")) {
+                                //参数类型是long或者Long
                                 arg = Long.parseLong(property);
                             } else if (cn.equals("double") || cn.equals("Double")) {
+                                //参数类型是double或者Double
                                 arg = Double.parseDouble(property);
                             } else if (cn.equals("boolean") || cn.equals("Boolean")) {
+                                //参数类型是boolean或者Boolean
                                 arg = Boolean.parseBoolean(property);
                             } else if (cn.equals("float") || cn.equals("Float")) {
+                                //参数类型是float或者Float
                                 arg = Float.parseFloat(property);
                             } else if (cn.equals("String")) {
+                                //参数类型是String
                                 arg = property;
                             } else {
                                 continue;
                             }
+                            //反射调用设置值
                             method.invoke(object, arg);
                         }
                     }
                 } catch (Throwable ignored) {
+                    //出现异常，忽略
                 }
             }
         }

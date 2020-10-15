@@ -27,6 +27,9 @@ import org.apache.rocketmq.common.stats.MomentStatsItemSet;
 import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsItemSet;
 
+/**
+ * Broker数据管理器
+ */
 public class BrokerStatsManager {
 
     public static final String TOPIC_PUT_NUMS = "TOPIC_PUT_NUMS";
@@ -40,7 +43,7 @@ public class BrokerStatsManager {
     public static final String GROUP_GET_FROM_DISK_SIZE = "GROUP_GET_FROM_DISK_SIZE";
     public static final String BROKER_GET_FROM_DISK_NUMS = "BROKER_GET_FROM_DISK_NUMS";
     public static final String BROKER_GET_FROM_DISK_SIZE = "BROKER_GET_FROM_DISK_SIZE";
-    // For commercial
+    // 商业用途
     public static final String COMMERCIAL_SEND_TIMES = "COMMERCIAL_SEND_TIMES";
     public static final String COMMERCIAL_SNDBCK_TIMES = "COMMERCIAL_SNDBCK_TIMES";
     public static final String COMMERCIAL_RCV_TIMES = "COMMERCIAL_RCV_TIMES";
@@ -67,6 +70,9 @@ public class BrokerStatsManager {
     private final ScheduledExecutorService commercialExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "CommercialStatsThread"));
     private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
+    /**
+     * 集群名称
+     */
     private final String clusterName;
     private final MomentStatsItemSet momentStatsItemSetFallSize = new MomentStatsItemSet(GROUP_GET_FALL_SIZE, scheduledExecutorService, log);
     private final MomentStatsItemSet momentStatsItemSetFallTime = new MomentStatsItemSet(GROUP_GET_FALL_TIME, scheduledExecutorService, log);
@@ -208,13 +214,37 @@ public class BrokerStatsManager {
         return strBuilder.toString();
     }
 
+    /**
+     * 数据类型
+     */
     public enum StatsType {
+        /**
+         * 发送成功
+         */
         SEND_SUCCESS,
+        /**
+         * 发送失败
+         */
         SEND_FAILURE,
+        /**
+         * 发回
+         */
         SEND_BACK,
+        /**
+         * 发送次数
+         */
         SEND_TIMER,
+        /**
+         * 发送事务
+         */
         SEND_TRANSACTION,
+        /**
+         * 接收成功
+         */
         RCV_SUCCESS,
+        /**
+         *
+         */
         RCV_EPOLLS,
         PERM_FAILURE
     }

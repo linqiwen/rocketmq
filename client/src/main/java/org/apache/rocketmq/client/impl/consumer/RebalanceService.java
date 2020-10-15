@@ -22,7 +22,7 @@ import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.logging.InternalLogger;
 
 /**
- * 平衡服务
+ * 重新分配队列和消费者组服务
  * <p>
  *     rocketmq.client.rebalance.waitInterval参数如果没配置，默认20s
  * </p>
@@ -53,7 +53,7 @@ public class RebalanceService extends ServiceThread {
         while (!this.isStopped()) {
             //任务等待的时间间隔
             this.waitForRunning(waitInterval);
-            //重新平衡
+            //将组中的消费者进行重新分配消息队列
             this.mqClientFactory.doRebalance();
         }
 

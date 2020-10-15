@@ -18,14 +18,14 @@
 package org.apache.rocketmq.filter.expression;
 
 /**
- * Represents a constant expression
+ * 表示常量表达式
  * <p>
- * This class was taken from ActiveMQ org.apache.activemq.filter.ConstantExpression,
+ * 这个类是取自ActiveMQ org.apache.activemq.filter.ConstantExpression,
  * but:
- * 1. For long type constant, the range bound by java Long type;
- * 2. For float type constant, the range bound by java Double type;
- * 3. Remove Hex and Octal expression;
- * 4. Add now expression to support to get current time.
+ * 1. 对于long类型常量，由java long类型绑定的范围;
+ * 2. 对于float类型常量，由java Double类型绑定的范围;
+ * 3. 删除十六进制和八进制表达式;
+ * 4. 添加now表达式以支持获取当前时间.
  * </p>
  */
 public class ConstantExpression implements Expression {
@@ -74,6 +74,13 @@ public class ConstantExpression implements Expression {
         return new ConstantExpression(value);
     }
 
+    /**
+     * 创建常量的float表达式
+     *
+     * @param text 表达式值
+     * @return Double的常量表达式
+     * @throws RuntimeException 表达式值如果不在[Double.MIN_VALUE, Double.MAX_VALUE]范围
+     */
     public static ConstantExpression createFloat(String text) {
         Double value = new Double(text);
         if (value > Double.MAX_VALUE) {

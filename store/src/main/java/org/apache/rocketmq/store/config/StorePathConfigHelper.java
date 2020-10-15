@@ -17,7 +17,9 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
-
+/**
+ * 路径存储配置帮助类
+ */
 public class StorePathConfigHelper {
 
     public static String getStorePathConsumeQueue(final String rootDir) {

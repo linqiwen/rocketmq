@@ -1012,6 +1012,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     @Override
     public void doRebalance() {
         if (!this.pause) {
+            //服务未暂停，将组中的消费者进行重新分配消息队列
             this.rebalanceImpl.doRebalance(this.isConsumeOrderly());
         }
     }

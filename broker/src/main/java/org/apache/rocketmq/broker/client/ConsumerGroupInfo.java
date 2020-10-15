@@ -285,6 +285,12 @@ public class ConsumerGroupInfo {
         return subscriptionTable.keySet();
     }
 
+    /**
+     * 查询订阅数据
+     *
+     * @param topic 主题
+     * @return 订阅主题数据
+     */
     public SubscriptionData findSubscriptionData(final String topic) {
         return this.subscriptionTable.get(topic);
     }

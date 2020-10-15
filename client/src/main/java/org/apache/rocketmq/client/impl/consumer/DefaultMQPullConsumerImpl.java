@@ -376,6 +376,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     @Override
     public void doRebalance() {
         if (this.rebalanceImpl != null) {
+            //将组中的消费者进行重新分配消息队列
             this.rebalanceImpl.doRebalance(false);
         }
     }

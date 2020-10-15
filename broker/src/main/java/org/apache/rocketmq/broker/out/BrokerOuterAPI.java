@@ -258,6 +258,17 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 判断broker是否需要注册
+     *
+     * @param clusterName 集群名
+     * @param brokerName broker名称
+     * @param brokerAddr broker地址
+     * @param brokerId brokerId
+     * @param topicConfigWrapper 主题配置的序列化包装类
+     * @param timeoutMills 超时时间
+     * @return {@code true}需要注册broker
+     */
     public List<Boolean> needRegister(
         final String clusterName,
         final String brokerAddr,
@@ -274,28 +285,43 @@ public class BrokerOuterAPI {
                     @Override
                     public void run() {
                         try {
+                            //创建查询数据版本请求头
                             QueryDataVersionRequestHeader requestHeader = new QueryDataVersionRequestHeader();
+                            //设置broker地址
                             requestHeader.setBrokerAddr(brokerAddr);
+                            //设置brokerId
                             requestHeader.setBrokerId(brokerId);
+                            //设置broker名称
                             requestHeader.setBrokerName(brokerName);
+                            //设置集群名称
                             requestHeader.setClusterName(clusterName);
+                            //创建请求命令
                             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_DATA_VERSION, requestHeader);
+                            //设置命令内容
                             request.setBody(topicConfigWrapper.getDataVersion().encode());
+                            //同步发送命令
                             RemotingCommand response = remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
                             DataVersion nameServerDataVersion = null;
                             Boolean changed = false;
                             switch (response.getCode()) {
+                                //请求成功
                                 case ResponseCode.SUCCESS: {
+                                    //获取到查询数据版本的响应头
                                     QueryDataVersionResponseHeader queryDataVersionResponseHeader =
                                         (QueryDataVersionResponseHeader) response.decodeCommandCustomHeader(QueryDataVersionResponseHeader.class);
+                                    //获取数据版本是否改变标识
                                     changed = queryDataVersionResponseHeader.getChanged();
+                                    //获取响应命令内容
                                     byte[] body = response.getBody();
                                     if (body != null) {
+                                        //对响应命令内容进行解码，获取到nameServer的数据版本
                                         nameServerDataVersion = DataVersion.decode(body, DataVersion.class);
+                                        //比较broker和nameServer的数据版本
                                         if (!topicConfigWrapper.getDataVersion().equals(nameServerDataVersion)) {
                                             changed = true;
                                         }
                                     }
+                                    //数据版本是否改变标识为null或者为true加入到changedList列表中
                                     if (changed == null || changed) {
                                         changedList.add(Boolean.TRUE);
                                     }
@@ -315,6 +341,7 @@ public class BrokerOuterAPI {
 
             }
             try {
+                //等countDownLatch为0进行唤醒，等上面所有的任务执行完
                 countDownLatch.await(timeoutMills, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 log.error("query dataversion from nameserver countDownLatch await Exception", e);
@@ -323,55 +350,80 @@ public class BrokerOuterAPI {
         return changedList;
     }
 
+    /**
+     * 获取所有的主题配置
+     *
+     * @param addr 地址
+     * @return 主题配置的序列化包装类
+     */
     public TopicConfigSerializeWrapper getAllTopicConfig(
         final String addr) throws RemotingConnectException, RemotingSendRequestException,
         RemotingTimeoutException, InterruptedException, MQBrokerException {
+        //创建请求命令
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
 
+        //同步请求
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(true, addr), request, 3000);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
+                //响应成功，返回主题配置的序列化包装类
                 return TopicConfigSerializeWrapper.decode(response.getBody(), TopicConfigSerializeWrapper.class);
             }
             default:
                 break;
         }
-
+        //否则抛出MQBrokerException异常
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 获取所有消费者偏移量
+     *
+     * @param addr 主broker地址
+     */
     public ConsumerOffsetSerializeWrapper getAllConsumerOffset(
         final String addr) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        //创建请求命令
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_CONSUMER_OFFSET, null);
+        //同步请求
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
+                //响应成功，返回消费者偏移量序列化包装类
                 return ConsumerOffsetSerializeWrapper.decode(response.getBody(), ConsumerOffsetSerializeWrapper.class);
             }
             default:
                 break;
         }
-
+        //否则抛出MQBrokerException异常
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 获取所有延迟的偏移量
+     *
+     * @param addr 主broker地址
+     */
     public String getAllDelayOffset(
         final String addr) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQBrokerException, UnsupportedEncodingException {
+        //创建请求命令
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_DELAY_OFFSET, null);
+        //同步请求
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
+                //响应成功，返回获取所有延迟的偏移量字符串
                 return new String(response.getBody(), MixAll.DEFAULT_CHARSET);
             }
             default:
                 break;
         }
-
+        //否则抛出MQBrokerException异常
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 

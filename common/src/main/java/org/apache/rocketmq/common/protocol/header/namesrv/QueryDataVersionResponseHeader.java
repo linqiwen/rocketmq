@@ -21,7 +21,13 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+/**
+ * 查询数据版本响应头
+ */
 public class QueryDataVersionResponseHeader implements CommandCustomHeader {
+    /**
+     * 数据版本是否改变
+     */
     @CFNotNull
     private Boolean changed;
 

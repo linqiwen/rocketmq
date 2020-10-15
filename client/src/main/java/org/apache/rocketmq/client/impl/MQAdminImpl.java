@@ -178,15 +178,26 @@ public class MQAdminImpl {
         throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
     }
 
+    /**
+     * 搜索特定时间的消息队列偏移量
+     *
+     * @param mq 消息队列
+     * @param timestamp 时间戳
+     * @return 消息队列偏移量
+     */
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+        //根据broker名称查询主broker地址
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
+            //如果broker地址为空，从NameServer中获取主题路由信息更新到内存中
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            //重新根据broker名称查询主broker地址
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
         if (brokerAddr != null) {
             try {
+                //搜索特定时间的消息队列偏移量
                 return this.mQClientFactory.getMQClientAPIImpl().searchOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timestamp,
                     timeoutMillis);
             } catch (Exception e) {
@@ -197,15 +208,25 @@ public class MQAdminImpl {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
+    /**
+     * 获取消息队列的最大偏移量
+     *
+     * @param mq 消息队列
+     * @return 消息队列的最大偏移量
+     */
     public long maxOffset(MessageQueue mq) throws MQClientException {
+        //根据broker名称查询主broker地址
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
+            //如果broker地址为空，从nameSrv中获取主题路由信息
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            //重新//根据broker名称查询主broker地址
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
         if (brokerAddr != null) {
             try {
+                //如果主broker地址存在，从broker中获取消息队列的最大偏移量
                 return this.mQClientFactory.getMQClientAPIImpl().getMaxOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timeoutMillis);
             } catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);

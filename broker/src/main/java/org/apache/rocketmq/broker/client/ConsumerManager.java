@@ -76,7 +76,7 @@ public class ConsumerManager {
     }
 
     /**
-     * 根据topic和group查询topic订阅数据
+     * 根据topic和group查询订阅topic数据
      *
      * @param group 消费组名称
      * @param topic 主题
@@ -105,7 +105,7 @@ public class ConsumerManager {
     }
 
     /**
-     * 获取当前组订阅的数目
+     * 获取当前消费者组订阅的主题数目
      */
     public int findSubscriptionDataCount(final String group) {
         //先根据组名称获取消费者组信息

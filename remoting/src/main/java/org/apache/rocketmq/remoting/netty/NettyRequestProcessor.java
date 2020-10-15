@@ -27,7 +27,7 @@ public interface NettyRequestProcessor {
     /**
      * 处理请求
      *
-     * @param ctx 渠道处理上下文
+     * @param ctx 通道处理上下文
      * @param request 远程请求
      * @return 远程命令
      */

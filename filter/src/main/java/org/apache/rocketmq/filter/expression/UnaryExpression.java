@@ -40,6 +40,9 @@ public abstract class UnaryExpression implements Expression {
     private static final BigDecimal BD_LONG_MIN_VALUE = BigDecimal.valueOf(Long.MIN_VALUE);
     protected Expression right;
 
+    /**
+     * 一元类型
+     */
     public UnaryType unaryType;
 
     public UnaryExpression(Expression left) {

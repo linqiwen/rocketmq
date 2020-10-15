@@ -44,7 +44,7 @@ public class SendResult {
      */
     private String transactionId;
     /**
-     *
+     * 消息id
      */
     private String offsetMsgId;
     /**

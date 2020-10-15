@@ -21,17 +21,19 @@ import org.apache.rocketmq.filter.expression.Expression;
 import org.apache.rocketmq.filter.expression.MQFilterException;
 
 /**
- * Filter spi interface.
+ * 过滤spi接口
  */
 public interface FilterSpi {
 
     /**
-     * Compile.
+     * 编译
+     *
+     * @param expr 表达式
      */
     Expression compile(final String expr) throws MQFilterException;
 
     /**
-     * Which type.
+     * 哪种类型.
      */
     String ofType();
 }

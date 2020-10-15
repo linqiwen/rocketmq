@@ -17,9 +17,17 @@
 package org.apache.rocketmq.common.message;
 
 import java.net.SocketAddress;
-
+/**
+ * 消息id
+ */
 public class MessageId {
+    /**
+     * 地址
+     */
     private SocketAddress address;
+    /**
+     * 偏移量
+     */
     private long offset;
 
     public MessageId(SocketAddress address, long offset) {

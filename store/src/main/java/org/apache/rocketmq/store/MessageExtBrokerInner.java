@@ -18,12 +18,23 @@ package org.apache.rocketmq.store;
 
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.message.MessageExt;
-
+/**
+ * broker内部的扩展消息
+ */
 public class MessageExtBrokerInner extends MessageExt {
     private static final long serialVersionUID = 7256001576878700634L;
+    /**
+     * 属性字符串
+     */
     private String propertiesString;
+    /**
+     * tags编码
+     */
     private long tagsCode;
 
+    /**
+     * tags字符串转成tags编码
+     */
     public static long tagsString2tagsCode(final TopicFilterType filter, final String tags) {
         if (null == tags || tags.length() == 0) { return 0; }
 

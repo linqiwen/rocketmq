@@ -27,7 +27,13 @@ public class MomentStatsItem {
 
     private final AtomicLong value = new AtomicLong(0);
 
+    /**
+     * 数据名
+     */
     private final String statsName;
+    /**
+     * 数据键
+     */
     private final String statsKey;
     private final ScheduledExecutorService scheduledExecutorService;
     private final InternalLogger log;
@@ -41,6 +47,7 @@ public class MomentStatsItem {
     }
 
     public void init() {
+        //每隔5分钟执行一次，开始延迟1分钟
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {

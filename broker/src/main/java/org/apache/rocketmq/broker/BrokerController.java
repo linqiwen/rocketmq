@@ -116,11 +116,29 @@ public class BrokerController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final InternalLogger LOG_PROTECTION = InternalLoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
     private static final InternalLogger LOG_WATER_MARK = InternalLoggerFactory.getLogger(LoggerName.WATER_MARK_LOGGER_NAME);
+    /**
+     * broker配置
+     */
     private final BrokerConfig brokerConfig;
+    /**
+     * netty服务端配置
+     */
     private final NettyServerConfig nettyServerConfig;
+    /**
+     * netty客户端配置
+     */
     private final NettyClientConfig nettyClientConfig;
+    /**
+     * 消息存储配置
+     */
     private final MessageStoreConfig messageStoreConfig;
+    /**
+     * 消费者偏移量管理器
+     */
     private final ConsumerOffsetManager consumerOffsetManager;
+    /**
+     * broker的消费者管理器
+     */
     private final ConsumerManager consumerManager;
     private final ConsumerFilterManager consumerFilterManager;
     private final ProducerManager producerManager;
@@ -153,6 +171,9 @@ public class BrokerController {
     private MessageStore messageStore;
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
+    /**
+     * 主题配置管理器
+     */
     private TopicConfigManager topicConfigManager;
     private ExecutorService sendMessageExecutor;
     private ExecutorService pullMessageExecutor;
@@ -162,6 +183,9 @@ public class BrokerController {
     private ExecutorService heartbeatExecutor;
     private ExecutorService consumerManageExecutor;
     private ExecutorService endTransactionExecutor;
+    /**
+     * 定期更新主HAServer地址
+     */
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
@@ -170,20 +194,36 @@ public class BrokerController {
     private FileWatchService fileWatchService;
     private TransactionalMessageCheckService transactionalMessageCheckService;
     private TransactionalMessageService transactionalMessageService;
+    /**
+     * 事务消息检查监听器
+     */
     private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
     private Future<?> slaveSyncFuture;
 
 
+    /**
+     * 创建Broker控制器
+     *
+     * @param brokerConfig Broker配置
+     * @param nettyServerConfig netty服务端配置
+     * @param nettyClientConfig netty客户端配置
+     * @param messageStoreConfig 消息存储配置
+     */
     public BrokerController(
         final BrokerConfig brokerConfig,
         final NettyServerConfig nettyServerConfig,
         final NettyClientConfig nettyClientConfig,
         final MessageStoreConfig messageStoreConfig
     ) {
+        //设置Broker配置属性
         this.brokerConfig = brokerConfig;
+        //设置netty服务端配置属性
         this.nettyServerConfig = nettyServerConfig;
+        //设置netty客户端配置属性
         this.nettyClientConfig = nettyClientConfig;
+        //设置消息存储配置属性
         this.messageStoreConfig = messageStoreConfig;
+        //设置消费者偏移量管理器属性
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
         this.topicConfigManager = new TopicConfigManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
@@ -326,6 +366,7 @@ public class BrokerController {
                 Executors.newFixedThreadPool(this.brokerConfig.getConsumerManageThreadPoolNums(), new ThreadFactoryImpl(
                     "ConsumerManageThread_"));
 
+            //注册处理器
             this.registerProcessor();
 
             final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
@@ -436,22 +477,27 @@ public class BrokerController {
                 }
             }
 
+            //如果使用SSL
             if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
                 // Register a listener to reload SslContext
                 try {
+                    //文件监视服务
                     fileWatchService = new FileWatchService(
                         new String[] {
                             TlsSystemConfig.tlsServerCertPath,
                             TlsSystemConfig.tlsServerKeyPath,
                             TlsSystemConfig.tlsServerTrustCertPath
                         },
+                        //文件监视服务的监听器
                         new FileWatchService.Listener() {
                             boolean certChanged, keyChanged = false;
 
                             @Override
                             public void onChanged(String path) {
                                 if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
+                                    //打印日志
                                     log.info("The trust certificate changed, reload the ssl context");
+                                    //重新加载服务端的SSL上下文
                                     reloadServerSslContext();
                                 }
                                 if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
@@ -461,12 +507,17 @@ public class BrokerController {
                                     keyChanged = true;
                                 }
                                 if (certChanged && keyChanged) {
+                                    //打印日志
                                     log.info("The certificate and private key changed, reload the ssl context");
                                     certChanged = keyChanged = false;
+                                    //重新加载服务端的SSL上下文
                                     reloadServerSslContext();
                                 }
                             }
 
+                            /**
+                             * 重新加载服务端的SSL上下文
+                             */
                             private void reloadServerSslContext() {
                                 ((NettyRemotingServer) remotingServer).loadSslContext();
                                 ((NettyRemotingServer) fastRemotingServer).loadSslContext();
@@ -539,6 +590,9 @@ public class BrokerController {
         }
     }
 
+    /**
+     * 注册处理器
+     */
     public void registerProcessor() {
         /**
          * SendMessageProcessor
@@ -588,10 +642,16 @@ public class BrokerController {
          */
         ConsumerManageProcessor consumerManageProcessor = new ConsumerManageProcessor(this);
         this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
+        /**
+         * 更新消费偏移量
+         */
         this.remotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
         this.remotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
 
         this.fastRemotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
+        /**
+         * 更新消费偏移量
+         */
         this.fastRemotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
         this.fastRemotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
 
@@ -726,6 +786,9 @@ public class BrokerController {
         return subscriptionGroupManager;
     }
 
+    /**
+     * broker控制器关闭
+     */
     public void shutdown() {
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.shutdown();
@@ -825,10 +888,18 @@ public class BrokerController {
             this.brokerConfig.getBrokerId());
     }
 
+    /**
+     * 获取broker地址
+     *
+     * @return ip:端口号
+     */
     public String getBrokerAddr() {
         return this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
     }
 
+    /**
+     * 启动broker控制类
+     */
     public void start() throws Exception {
         if (this.messageStore != null) {
             this.messageStore.start();
@@ -864,6 +935,7 @@ public class BrokerController {
 
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
             startProcessorByHa(messageStoreConfig.getBrokerRole());
+            //处理从同步
             handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
         }
 
@@ -917,16 +989,20 @@ public class BrokerController {
 
         if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
             || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
+            //创建新的主题->主题配置文件列表
             ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>();
             for (TopicConfig topicConfig : topicConfigWrapper.getTopicConfigTable().values()) {
+                //创建新的主题配置
                 TopicConfig tmp =
                     new TopicConfig(topicConfig.getTopicName(), topicConfig.getReadQueueNums(), topicConfig.getWriteQueueNums(),
                         this.brokerConfig.getBrokerPermission());
                 topicConfigTable.put(topicConfig.getTopicName(), tmp);
             }
+            //设置新的主题->主题配置文件列表
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
         }
 
+        //强制注册或需要注册
         if (forceRegister || needRegister(this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
             this.brokerConfig.getBrokerName(),
@@ -936,15 +1012,18 @@ public class BrokerController {
         }
     }
 
+    /**
+     * 向所有nameSrv注册broker信息
+     */
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
         TopicConfigSerializeWrapper topicConfigWrapper) {
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
-            this.brokerConfig.getBrokerClusterName(),
-            this.getBrokerAddr(),
-            this.brokerConfig.getBrokerName(),
-            this.brokerConfig.getBrokerId(),
-            this.getHAServerAddr(),
-            topicConfigWrapper,
+            this.brokerConfig.getBrokerClusterName(),//集群名称
+            this.getBrokerAddr(),//broker地址
+            this.brokerConfig.getBrokerName(),//broker名称
+            this.brokerConfig.getBrokerId(),//brokerId
+            this.getHAServerAddr(),//ha服务地址
+            topicConfigWrapper,//
             this.filterServerManager.buildNewFilterServerList(),
             oneway,
             this.brokerConfig.getRegisterBrokerTimeoutMills(),
@@ -954,9 +1033,11 @@ public class BrokerController {
             RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
             if (registerBrokerResult != null) {
                 if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
+                    //更新HA主地址
                     this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
                 }
 
+                //从同步更新主地址
                 this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
 
                 if (checkOrderConfig) {
@@ -966,15 +1047,28 @@ public class BrokerController {
         }
     }
 
+    /**
+     * 判断broker是否需要注册
+     *
+     * @param clusterName 集群名
+     * @param brokerName broker名称
+     * @param brokerAddr broker地址
+     * @param brokerId brokerId
+     * @param timeoutMills 超时时间
+     * @return {@code true}需要注册broker
+     */
     private boolean needRegister(final String clusterName,
         final String brokerAddr,
         final String brokerName,
         final long brokerId,
         final int timeoutMills) {
 
+        //主题配置管理类的序列化包装类
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
+        //获取broker的数据版本和所有nameServer的数据版本对比
         List<Boolean> changeList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigWrapper, timeoutMills);
         boolean needRegister = false;
+        //changeList有一个为true，needRegister就为true
         for (Boolean changed : changeList) {
             if (changed) {
                 needRegister = true;
@@ -1112,12 +1206,19 @@ public class BrokerController {
     }
 
 
-
+    /**
+     * 处理从同步
+     *
+     * @param role broker角色
+     */
     private void handleSlaveSynchronize(BrokerRole role) {
+        //broker是从角色
         if (role == BrokerRole.SLAVE) {
             if (null != slaveSyncFuture) {
+                //从同步future不为空，先取消掉
                 slaveSyncFuture.cancel(false);
             }
+            //设置主地址为空
             this.slaveSynchronize.setMasterAddr(null);
             slaveSyncFuture = this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -1129,10 +1230,11 @@ public class BrokerController {
                         log.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                     }
                 }
-            }, 1000 * 3, 1000 * 10, TimeUnit.MILLISECONDS);
+            }, 1000 * 3, 1000 * 10, TimeUnit.MILLISECONDS);//初始延迟3秒，每隔10秒执行一次
         } else {
             //handle the slave synchronise
             if (null != slaveSyncFuture) {
+                //从同步future不为空，先取消掉，可能从broker升级到主
                 slaveSyncFuture.cancel(false);
             }
             this.slaveSynchronize.setMasterAddr(null);

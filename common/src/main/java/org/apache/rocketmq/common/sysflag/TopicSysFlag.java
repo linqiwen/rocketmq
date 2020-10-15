@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.common.sysflag;
 
+/**
+ * 主题系统标识
+ */
 public class TopicSysFlag {
 
     private final static int FLAG_UNIT = 0x1 << 0;

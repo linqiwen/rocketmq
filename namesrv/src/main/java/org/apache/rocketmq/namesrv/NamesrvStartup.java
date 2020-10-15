@@ -143,9 +143,11 @@ public class NamesrvStartup {
             System.exit(-3);
         }
 
+        //注册jvm关闭时调用的钩子线程
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable<Void>() {
             @Override
             public Void call() throws Exception {
+                //关闭NamesrvController
                 controller.shutdown();
                 return null;
             }

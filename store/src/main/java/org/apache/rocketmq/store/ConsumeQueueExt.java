@@ -408,6 +408,9 @@ public class ConsumeQueueExt {
      * Store unit.
      */
     public static class CqExtUnit {
+        /**
+         * 存储size、msg time + tagCode、bitMapSize大小
+         */
         public static final short MIN_EXT_UNIT_SIZE
             = 2 * 1 // size, 32k max
             + 8 * 2 // msg time + tagCode
@@ -423,113 +426,144 @@ public class ConsumeQueueExt {
             this.msgStoreTime = msgStoreTime;
             this.filterBitMap = filterBitMap;
             this.bitMapSize = (short) (filterBitMap == null ? 0 : filterBitMap.length);
+            //存储size、msg time + tagCode、bitMapSize、filterBitMap大小
             this.size = (short) (MIN_EXT_UNIT_SIZE + this.bitMapSize);
         }
 
         /**
-         * unit size
+         * 单元大小
          */
         private short size;
         /**
-         * has code of tags
+         * tags的hashcode
          */
         private long tagsCode;
         /**
-         * the time to store into commit log of message
+         * 消息存储到commit log的时间
          */
         private long msgStoreTime;
         /**
-         * size of bit map
+         * bit map大小
          */
         private short bitMapSize;
         /**
-         * filter bit map
+         * 过滤bit map
          */
         private byte[] filterBitMap;
 
         /**
-         * build unit from buffer from current position.
+         * 从buffer当前位置构造存储单元
+         *
+         * @return {@code true}存储单元完整，
          */
         private boolean read(final ByteBuffer buffer) {
+            //前2字节存储大小，如果当前位置加上2大于限制，没法从里面获取值
             if (buffer.position() + 2 > buffer.limit()) {
                 return false;
             }
 
+            //获取存储大小
             this.size = buffer.getShort();
 
+            //如果存储大小小于1，表明没有后续的tagsCode、msgStoreTime、bitMapSize、filterBitMap
             if (this.size < 1) {
                 return false;
             }
 
+            //获取8个字节的tagsCode
             this.tagsCode = buffer.getLong();
+            //获取8个字节的msgStoreTime
             this.msgStoreTime = buffer.getLong();
+            //获取2个字节的bitMapSize
             this.bitMapSize = buffer.getShort();
 
+            //如果bitMapSize小于1，表明没有filterBitMap
             if (this.bitMapSize < 1) {
                 return true;
             }
 
+            //如果filterBitMap为空，或者bitMapSize和原本的filterBitMap大小不相等，重新设置大小
             if (this.filterBitMap == null || this.filterBitMap.length != this.bitMapSize) {
                 this.filterBitMap = new byte[bitMapSize];
             }
 
+            //从buffer中获取filterBitMap
             buffer.get(this.filterBitMap);
             return true;
         }
 
         /**
-         * Only read first 2 byte to get unit size.
+         * 读取前面两字节的单元大小
          * <p>
-         * if size > 0, then skip buffer position with size.
+         * 如果 size > 0, then skip buffer position with size.
          * </p>
          * <p>
-         * if size <= 0, nothing to do.
+         * 如果 size <= 0, 不做任何操作.
          * </p>
          */
         private void readBySkip(final ByteBuffer buffer) {
+            //buffer分片，从buffer的position开始创建一个新的Buffer，limit、position、mark、capacity都是单独的
             ByteBuffer temp = buffer.slice();
 
+            //获取前2个字节
             short tempSize = temp.getShort();
+            //设置size
             this.size = tempSize;
 
             if (tempSize > 0) {
+                //tempSize大于0，跳过tempSize位置
                 buffer.position(buffer.position() + this.size);
             }
         }
 
         /**
-         * Transform unit data to byte array.
+         * 将单位数据转换为字节数组.
          * <p/>
-         * <li>1. @{code container} can be null, it will be created if null.</li>
-         * <li>2. if capacity of @{code container} is less than unit size, it will be created also.</li>
-         * <li>3. Pls be sure that size of unit is not greater than {@link #MAX_EXT_UNIT_SIZE}</li>
+         * <li>1. @{code container}可能为null, 如果为null将被新创建.</li>
+         * <li>2. @{code container}的容量如果小于单元大小, it will be created also.</li>
+         * <li>3. 请确保单元大小不大于 {@link #MAX_EXT_UNIT_SIZE}</li>
+         *
+         * @param container 写入的ByteBuffer
+         * @return 写入后的字节数组
          */
         private byte[] write(final ByteBuffer container) {
+            //获取filterBitMap的大小
             this.bitMapSize = (short) (filterBitMap == null ? 0 : filterBitMap.length);
+            //存储size、msg time + tagCode、bitMapSize、filterBitMap大小
             this.size = (short) (MIN_EXT_UNIT_SIZE + this.bitMapSize);
 
+            //获取存储ByteBuffer
             ByteBuffer temp = container;
 
+            //如果container为空或者container的容量小于要存储的大小，重新分配一个新的ByteBuffer
             if (temp == null || temp.capacity() < this.size) {
                 temp = ByteBuffer.allocate(this.size);
             }
 
+            //ByteBuffer翻转，limit设置为position，position设置为0，
             temp.flip();
+            //设置限制
             temp.limit(this.size);
 
+            //设置总大小，2字节
             temp.putShort(this.size);
+            //设置tagsCode，8字节
             temp.putLong(this.tagsCode);
+            //设置消息存储时间，8字节
             temp.putLong(this.msgStoreTime);
+            //设置filterBitMap，2字节
             temp.putShort(this.bitMapSize);
             if (this.bitMapSize > 0) {
+                //设置filterBitMap
                 temp.put(this.filterBitMap);
             }
 
+            //返回设置后的字节数组
             return temp.array();
         }
 
         /**
-         * Calculate unit size by current data.
+         * 计算当前数据单元的大小
          */
         private int calcUnitSize() {
             int sizeTemp = MIN_EXT_UNIT_SIZE + (filterBitMap == null ? 0 : filterBitMap.length);
@@ -553,6 +587,7 @@ public class ConsumeQueueExt {
         }
 
         public byte[] getFilterBitMap() {
+            //不存在filterBitMap，返回null
             if (this.bitMapSize < 1) {
                 return null;
             }

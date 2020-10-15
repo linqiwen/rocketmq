@@ -106,20 +106,28 @@ public abstract class RebalanceImpl {
     }
 
     public void unlock(final MessageQueue mq, final boolean oneway) {
+        //在订阅中查找broker地址
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        //查询到broker信息
         if (findBrokerResult != null) {
+            //构造批量解放请求
             UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
+            //设置消费者组
             requestBody.setConsumerGroup(this.consumerGroup);
+            //设置消费者id
             requestBody.setClientId(this.mQClientFactory.getClientId());
+            //加入消息队列
             requestBody.getMqSet().add(mq);
 
             try {
+                //批量解锁MQ
                 this.mQClientFactory.getMQClientAPIImpl().unlockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000, oneway);
                 log.warn("unlock messageQueue. group:{}, clientId:{}, mq:{}",
                     this.consumerGroup,
                     this.mQClientFactory.getClientId(),
                     mq);
             } catch (Exception e) {
+                //出现异常打印日志
                 log.error("unlockBatchMQ exception, " + mq, e);
             }
         }
@@ -174,25 +182,40 @@ public abstract class RebalanceImpl {
         return result;
     }
 
+    /**
+     * 锁消息队列
+     *
+     * @param mq 消息队列
+     * @return {@code true}消费成功
+     */
     public boolean lock(final MessageQueue mq) {
+        //在订阅中查找broker地址
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        //broker信息存在
         if (findBrokerResult != null) {
             LockBatchRequestBody requestBody = new LockBatchRequestBody();
+            //消费者组
             requestBody.setConsumerGroup(this.consumerGroup);
+            //客户端id
             requestBody.setClientId(this.mQClientFactory.getClientId());
+            //将队列加入到队列列表
             requestBody.getMqSet().add(mq);
 
             try {
+                //对批量MQ进行加锁
                 Set<MessageQueue> lockedMq =
                     this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000);
                 for (MessageQueue mmqq : lockedMq) {
                     ProcessQueue processQueue = this.processQueueTable.get(mmqq);
                     if (processQueue != null) {
+                        //消息队列被锁
                         processQueue.setLocked(true);
+                        //消息队列最近锁时间
                         processQueue.setLastLockTimestamp(System.currentTimeMillis());
                     }
                 }
 
+                //对传入进来的队列是否有加锁成功
                 boolean lockOK = lockedMq.contains(mq);
                 log.info("the message queue lock {}, {} {}",
                     lockOK ? "OK" : "Failed",
@@ -200,6 +223,7 @@ public abstract class RebalanceImpl {
                     mq);
                 return lockOK;
             } catch (Exception e) {
+                //出现异常打印日志
                 log.error("lockBatchMQ exception, " + mq, e);
             }
         }
@@ -274,13 +298,16 @@ public abstract class RebalanceImpl {
                     //根据主题进行重新分配消息队列
                     this.rebalanceByTopic(topic, isOrder);
                 } catch (Throwable e) {
+                    //出现异常，如果主题不是重试组主题前缀
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                        //打印日志
                         log.warn("rebalanceByTopic Exception", e);
                     }
                 }
             }
         }
 
+        //清除不是订阅topic的队列
         this.truncateMessageQueueNotMyTopic();
     }
 
@@ -296,6 +323,7 @@ public abstract class RebalanceImpl {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 //如果topic下的消息队列不为空
                 if (mqSet != null) {
+                    //在重新分配中更新ProcessQueueTable
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
                     if (changed) {
                         this.messageQueueChanged(topic, mqSet, mqSet);
@@ -306,6 +334,7 @@ public abstract class RebalanceImpl {
                             mqSet);
                     }
                 } else {
+                    //topic下的消息队列为空，打印日志
                     log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
                 }
                 break;
@@ -366,6 +395,9 @@ public abstract class RebalanceImpl {
         }
     }
 
+    /**
+     * 移除不在消费者订阅的主题的队列
+     */
     private void truncateMessageQueueNotMyTopic() {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
 
@@ -388,23 +420,36 @@ public abstract class RebalanceImpl {
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
+            //消息队列
             MessageQueue mq = next.getKey();
+            //队列消费快照
             ProcessQueue pq = next.getValue();
 
+            //如果消息队列属于传入进来的主题
             if (mq.getTopic().equals(topic)) {
+                //但消息队列不在传入进来的队列中
                 if (!mqSet.contains(mq)) {
+                    //ProcessQueue的删除标识dropped设置为true
                     pq.setDropped(true);
+                    //删除不必要的消息队列，队列的消费偏移量进行持久化，广播并且有序，对消息队列进行解锁
                     if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+                        //从processQueueTable中移除
                         it.remove();
+                        //改变标识设置为true
                         changed = true;
+                        //打印日志
                         log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
                     }
-                } else if (pq.isPullExpired()) {
+                } else if (pq.isPullExpired()) {//拉取超时
                     switch (this.consumeType()) {
+                        //拉模式直接退出
                         case CONSUME_ACTIVELY:
                             break;
+                        //推模式将ProcessQueue进行移除
                         case CONSUME_PASSIVELY:
+                            //ProcessQueue的删除标识dropped设置为true
                             pq.setDropped(true);
+                            //删除不必要的消息队列，队列的消费偏移量进行持久化，广播并且有序，对消息队列进行解锁
                             if (this.removeUnnecessaryMessageQueue(mq, pq)) {
                                 it.remove();
                                 changed = true;
@@ -419,27 +464,39 @@ public abstract class RebalanceImpl {
             }
         }
 
+        //拉取请求实体列表
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
+            //对不在processQueueTable中的队列进行处理
             if (!this.processQueueTable.containsKey(mq)) {
+                //消费者是有序的，尝试对消息队列进行加锁
                 if (isOrder && !this.lock(mq)) {
+                    //加锁失败直接跳过
                     log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
                     continue;
                 }
 
+                //从内存中移除消息队列的偏移量
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
+                //获取消息队列的下一个偏移量，即下一个消息
                 long nextOffset = this.computePullFromWhere(mq);
                 if (nextOffset >= 0) {
                     ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
                     if (pre != null) {
+                        //已经存在直接打印日志
                         log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
                     } else {
                         log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
+                        //创建一个拉请求
                         PullRequest pullRequest = new PullRequest();
+                        //设置消费组
                         pullRequest.setConsumerGroup(consumerGroup);
+                        //设置下一个消息偏移量
                         pullRequest.setNextOffset(nextOffset);
+                        //设置消息队列
                         pullRequest.setMessageQueue(mq);
+                        //设置队列消费快照
                         pullRequest.setProcessQueue(pq);
                         pullRequestList.add(pullRequest);
                         changed = true;
@@ -458,8 +515,18 @@ public abstract class RebalanceImpl {
     public abstract void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
         final Set<MessageQueue> mqDivided);
 
+    /**
+     * 删除不必要的消息队列
+     *
+     * @param mq 消息队列
+     * @param pq 队列消费快照
+     * @return {@code true}删除不必要的消息队列成功
+     */
     public abstract boolean removeUnnecessaryMessageQueue(final MessageQueue mq, final ProcessQueue pq);
 
+    /**
+     * 获取消费类型，拉取还是推
+     */
     public abstract ConsumeType consumeType();
 
     public abstract void removeDirtyOffset(final MessageQueue mq);

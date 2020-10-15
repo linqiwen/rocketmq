@@ -24,11 +24,14 @@ import org.apache.rocketmq.common.protocol.body.KVTable;
  */
 public class RegisterBrokerResult {
     /**
-     * 主broker地址
+     * ha服务地址
      */
     private String haServerAddr;
 
     private String masterAddr;
+    /**
+     * kv表格
+     */
     private KVTable kvTable;
 
     public String getHaServerAddr() {

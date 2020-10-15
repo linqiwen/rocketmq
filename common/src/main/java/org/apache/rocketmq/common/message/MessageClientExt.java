@@ -28,6 +28,7 @@ public class MessageClientExt extends MessageExt {
 
     @Override
     public String getMsgId() {
+        //获取消息的唯一id
         String uniqID = MessageClientIDSetter.getUniqID(this);
         if (uniqID == null) {
             return this.getOffsetMsgId();

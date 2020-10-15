@@ -185,26 +185,43 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
+    /**
+     * 持久化偏移量，偏移量发送给broker进行存储
+     *
+     * @param mq 消息队列
+     */
     @Override
     public void persist(MessageQueue mq) {
+        //获取消息队列的消费偏移量
         AtomicLong offset = this.offsetTable.get(mq);
+        //消息队列的消费偏移量不为空
         if (offset != null) {
             try {
+                //将消息队列的消费偏移量更新到broker
                 this.updateConsumeOffsetToBroker(mq, offset.get());
+                //打印日志
                 log.info("[persist] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
                     this.groupName,
                     this.mQClientFactory.getClientId(),
                     mq,
                     offset.get());
             } catch (Exception e) {
+                //出现异常打印日志
                 log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
             }
         }
     }
 
+    /**
+     * 将消息队列的消费偏移量从内存中移除
+     *
+     * @param mq 消息队列
+     */
     public void removeOffset(MessageQueue mq) {
         if (mq != null) {
+            //从内存中移除消息队列的消费偏移量
             this.offsetTable.remove(mq);
+            //打印日志
             log.info("remove unnecessary messageQueue offset. group={}, mq={}, offsetTableSize={}", this.groupName, mq,
                 offsetTable.size());
         }
@@ -224,33 +241,46 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     }
 
     /**
-     * Update the Consumer Offset in one way, once the Master is off, updated to Slave,
-     * here need to be optimized.
+     * 用一种方式更新用户偏移量，一旦主节点关闭，更新到从属节点，这里需要进行优化
+     *
+     * @param mq 消息队列
+     * @param offset 消费消息队列的消费偏移量
      */
     private void updateConsumeOffsetToBroker(MessageQueue mq, long offset) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
+        //将消息队列的消费偏移量更新到broker
         updateConsumeOffsetToBroker(mq, offset, true);
     }
 
     /**
-     * Update the Consumer Offset synchronously, once the Master is off, updated to Slave,
-     * here need to be optimized.
+     * 同步更新用户偏移量，一旦主节点关闭，更新到从属节点，这里需要进行优化
+     *
+     * @param mq 消息队列
+     * @param offset 消费消息队列的偏移量
+     * @param isOneway 是否单向发送
      */
     @Override
     public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
+        //根据brokerName查询存储消息队列的broker信息
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
-
+            //从内存中未找到broker信息，从nameServer获取新的主题路由信息
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            //再次根据brokerName查询存储消息队列的broker信息
             findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         }
 
+        //如果查询到队列的broker信息
         if (findBrokerResult != null) {
             UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
+            //设置主题
             requestHeader.setTopic(mq.getTopic());
+            //设置消费者组
             requestHeader.setConsumerGroup(this.groupName);
+            //设置队列id
             requestHeader.setQueueId(mq.getQueueId());
+            //设置commitLog偏移量
             requestHeader.setCommitOffset(offset);
 
             if (isOneway) {
@@ -284,8 +314,11 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
         if (findBrokerResult != null) {
             QueryConsumerOffsetRequestHeader requestHeader = new QueryConsumerOffsetRequestHeader();
+            //设置主题
             requestHeader.setTopic(mq.getTopic());
+            //设置消费者组
             requestHeader.setConsumerGroup(this.groupName);
+            //设置队列id
             requestHeader.setQueueId(mq.getQueueId());
 
             return this.mQClientFactory.getMQClientAPIImpl().queryConsumerOffset(

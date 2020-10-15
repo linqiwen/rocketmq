@@ -18,13 +18,19 @@
 package org.apache.rocketmq.filter.expression;
 
 /**
- * An expression which performs an operation on two expression values.
+ * 对两个表达式值执行操作的表达式
  * <p>
- * This class was taken from ActiveMQ org.apache.activemq.filter.BinaryExpression,
+ * 这个类取自ActiveMQ org.apache.activemq.filter.BinaryExpression,
  * </p>
  */
 public abstract class BinaryExpression implements Expression {
+    /**
+     * 左表达式
+     */
     protected Expression left;
+    /**
+     * 右表达式
+     */
     protected Expression right;
 
     public BinaryExpression(Expression left, Expression right) {
@@ -67,13 +73,16 @@ public abstract class BinaryExpression implements Expression {
     }
 
     /**
-     * Returns the symbol that represents this binary expression.  For example, addition is
-     * represented by "+"
+     * 返回表示此二进制表达式的符号。例如，加法用"+"表示
+     *
+     * @return 表达式符合
      */
     public abstract String getExpressionSymbol();
 
     /**
-     * @param expression
+     * 设置左表达式
+     *
+     * @param expression 表达式
      */
     public void setRight(Expression expression) {
         right = expression;

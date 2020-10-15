@@ -32,14 +32,26 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
+/**
+ * 消费者偏移量管理器
+ */
 public class ConsumerOffsetManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    /**
+     * 主题和组分隔符
+     */
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
+    /**
+     * 每个消费组对主题下的队列的消费偏移量
+     * key->主题@消费者组，value-><key->队列id, value->消费组对主题下的队列的消费偏移量>
+     */
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
 
+    /**
+     * broker控制器
+     */
     private transient BrokerController brokerController;
 
     public ConsumerOffsetManager() {
@@ -49,19 +61,28 @@ public class ConsumerOffsetManager extends ConfigManager {
         this.brokerController = brokerController;
     }
 
+    /**
+     * 遍历未订阅主题
+     */
     public void scanUnsubscribedTopic() {
         Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
+            //主题和消费者组key
             String topicAtGroup = next.getKey();
+            //分割主题和消费者组
             String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
             if (arrays.length == 2) {
+                //主题
                 String topic = arrays[0];
+                //消费者组
                 String group = arrays[1];
-
+                //根据topic和group查询订阅topic数据
                 if (null == brokerController.getConsumerManager().findSubscriptionData(group, topic)
                     && this.offsetBehindMuchThanData(topic, next.getValue())) {
+                    //从offsetTable中移除
                     it.remove();
+                    //打印日志
                     log.warn("remove topic offset, {}", topicAtGroup);
                 }
             }
@@ -118,13 +139,30 @@ public class ConsumerOffsetManager extends ConfigManager {
         return groups;
     }
 
+    /**
+     * 更新或创建消息者对消息队列的消费偏移量
+     *
+     * @param queueId 队列id
+     * @param topic 主题
+     * @param group 消费者组
+     * @param clientHost 客户端主机
+     * @param offset 消费者对消息队列的偏移量
+     */
     public void commitOffset(final String clientHost, final String group, final String topic, final int queueId,
         final long offset) {
-        // topic@group
+        // topic@group，构建key
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
         this.commitOffset(clientHost, key, queueId, offset);
     }
 
+    /**
+     * 更新或创建消息者对消息队列的消费偏移量
+     *
+     * @param queueId 队列id
+     * @param clientHost 客户端主机
+     * @param offset 消费者对消息队列的偏移量
+     * @param key 消费者组对主题的队列消费偏移量key
+     */
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
@@ -139,11 +177,21 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
+    /**
+     * 查询消费者组对主题下特定队列的消费偏移量
+     *
+     * @param group 消费者组
+     * @param topic 主题
+     * @param queueId 队列id
+     * @return 消费者组对主题下特定队列的消费偏移量
+     */
     public long queryOffset(final String group, final String topic, final int queueId) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        //查询消费者组队主题各个队列的消费偏移量
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null != map) {
+            //获取队列偏移量
             Long offset = map.get(queueId);
             if (offset != null)
                 return offset;

@@ -16,10 +16,22 @@
  */
 package org.apache.rocketmq.common;
 
+/**
+ * MQ版本号
+ */
 public class MQVersion {
 
+    /**
+     * 当前版本
+     */
     public static final int CURRENT_VERSION = Version.V4_5_1.ordinal();
 
+    /**
+     * 根据版本号获取版本描述
+     *
+     * @param value 版本号
+     * @return 版本描述
+     */
     public static String getVersionDesc(int value) {
         int length = Version.values().length;
         if (value >= length) {
@@ -29,6 +41,12 @@ public class MQVersion {
         return Version.values()[value].name();
     }
 
+    /**
+     * 根据版本号获取版本
+     *
+     * @param value 版本号
+     * @return 版本
+     */
     public static Version value2Version(int value) {
         int length = Version.values().length;
         if (value >= length) {
@@ -38,6 +56,9 @@ public class MQVersion {
         return Version.values()[value];
     }
 
+    /**
+     * 所有的版本枚举
+     */
     public enum Version {
         V3_0_0_SNAPSHOT,
         V3_0_0_ALPHA1,

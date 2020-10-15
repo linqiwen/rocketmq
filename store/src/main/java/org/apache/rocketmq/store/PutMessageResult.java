@@ -15,9 +15,17 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.store;
-
+/**
+ * 推消息结果
+ */
 public class PutMessageResult {
+    /**
+     * 推消息状态
+     */
     private PutMessageStatus putMessageStatus;
+    /**
+     * 附加消息结果
+     */
     private AppendMessageResult appendMessageResult;
 
     public PutMessageResult(PutMessageStatus putMessageStatus, AppendMessageResult appendMessageResult) {
@@ -25,6 +33,9 @@ public class PutMessageResult {
         this.appendMessageResult = appendMessageResult;
     }
 
+    /**
+     * 是否ok
+     */
     public boolean isOk() {
         return this.appendMessageResult != null && this.appendMessageResult.isOk();
     }

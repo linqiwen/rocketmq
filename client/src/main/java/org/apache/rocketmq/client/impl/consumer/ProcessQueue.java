@@ -36,6 +36,7 @@ import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
 
 /**
  * 队列消费快照
+ * 主要作用是用来记录获取消费偏移量，消费进度。和顺序消费时，对消息进行排序。再取出消费。
  */
 public class ProcessQueue {
     /**
@@ -56,20 +57,35 @@ public class ProcessQueue {
      * TreeMap的操作读写锁
      */
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
+    /**
+     * key:queryOffset,value:MessageExt
+     */
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong msgCount = new AtomicLong();
     private final AtomicLong msgSize = new AtomicLong();
+    /**
+     * 消费锁
+     */
     private final Lock lockConsume = new ReentrantLock();
     /**
      * A subset of msgTreeMap, will only be used when orderly consume
      */
     private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
+    /**
+     * 尝试释放的次数
+     */
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
     private volatile long queueOffsetMax = 0L;
     private volatile boolean dropped = false;
     private volatile long lastPullTimestamp = System.currentTimeMillis();
     private volatile long lastConsumeTimestamp = System.currentTimeMillis();
+    /**
+     * 消息队列是否被锁
+     */
     private volatile boolean locked = false;
+    /**
+     * 最近的锁时间
+     */
     private volatile long lastLockTimestamp = System.currentTimeMillis();
     private volatile boolean consuming = false;
     private volatile long msgAccCnt = 0;
@@ -341,10 +357,13 @@ public class ProcessQueue {
 
     public boolean hasTempMessage() {
         try {
+            //加可中断读锁
             this.lockTreeMap.readLock().lockInterruptibly();
             try {
+                //消息不为空
                 return !this.msgTreeMap.isEmpty();
             } finally {
+                //释放锁
                 this.lockTreeMap.readLock().unlock();
             }
         } catch (InterruptedException e) {

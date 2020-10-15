@@ -57,9 +57,21 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     protected final static int DLQ_NUMS_PER_GROUP = 1;
+    /**
+     * broker控制器
+     */
     protected final BrokerController brokerController;
+    /**
+     * 随机数
+     */
     protected final Random random = new Random(System.currentTimeMillis());
+    /**
+     * 存储地址
+     */
     protected final SocketAddress storeHost;
+    /**
+     * 发送消息钩子列表
+     */
     private List<SendMessageHook> sendMessageHookList;
 
     public AbstractSendMessageProcessor(final BrokerController brokerController) {
@@ -69,101 +81,167 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 .getNettyServerConfig().getListenPort());
     }
 
+    /**
+     * 构造消息上下文
+     */
     protected SendMessageContext buildMsgContext(ChannelHandlerContext ctx,
         SendMessageRequestHeader requestHeader) {
+        //发送消息钩子列表不存在直接返回null
         if (!this.hasSendMessageHook()) {
             return null;
         }
+        //从主题中获取命名空间
         String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
         SendMessageContext mqtraceContext;
+        //构造消息上下文
         mqtraceContext = new SendMessageContext();
+        //设置生产者组
         mqtraceContext.setProducerGroup(requestHeader.getProducerGroup());
+        //设置命名空间
         mqtraceContext.setNamespace(namespace);
+        //设置主题
         mqtraceContext.setTopic(requestHeader.getTopic());
+        //设置属性
         mqtraceContext.setMsgProps(requestHeader.getProperties());
+        //设置生产者地址
         mqtraceContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        //设置broker地址
         mqtraceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
+        //设置broker的区域id
         mqtraceContext.setBrokerRegionId(this.brokerController.getBrokerConfig().getRegionId());
+        //设置消息的产生时间戳
         mqtraceContext.setBornTimeStamp(requestHeader.getBornTimestamp());
 
+        //将属性字符串转成map
         Map<String, String> properties = MessageDecoder.string2messageProperties(requestHeader.getProperties());
+        //获取消息唯一key
         String uniqueKey = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+        //设置区域id
         properties.put(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());
+        //跟踪开关
         properties.put(MessageConst.PROPERTY_TRACE_SWITCH, String.valueOf(this.brokerController.getBrokerConfig().isTraceOn()));
+        //重新设置属性
         requestHeader.setProperties(MessageDecoder.messageProperties2String(properties));
 
         if (uniqueKey == null) {
+            //唯一key为null，设置空串
             uniqueKey = "";
         }
+        //设置唯一key
         mqtraceContext.setMsgUniqueKey(uniqueKey);
         return mqtraceContext;
     }
 
+    /**
+     * 判断是否有钩子列表
+     */
     public boolean hasSendMessageHook() {
         return sendMessageHookList != null && !this.sendMessageHookList.isEmpty();
     }
 
     protected MessageExtBrokerInner buildInnerMsg(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, final byte[] body, TopicConfig topicConfig) {
+        //队列id
         int queueIdInt = requestHeader.getQueueId();
         if (queueIdInt < 0) {
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
         }
+        //获取系统标识
         int sysFlag = requestHeader.getSysFlag();
 
         if (TopicFilterType.MULTI_TAG == topicConfig.getTopicFilterType()) {
+            //标签如果是多标签，多标签加到系统标识中
             sysFlag |= MessageSysFlag.MULTI_TAGS_FLAG;
         }
 
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+        //设置主题
         msgInner.setTopic(requestHeader.getTopic());
+        //设置内容
         msgInner.setBody(body);
+        //设置标识
         msgInner.setFlag(requestHeader.getFlag());
+        //设置属性Map
         MessageAccessor.setProperties(msgInner,
             MessageDecoder.string2messageProperties(requestHeader.getProperties()));
+        //设置属性串
         msgInner.setPropertiesString(requestHeader.getProperties());
         msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(),
             msgInner.getTags()));
 
+        //设置队列id
         msgInner.setQueueId(queueIdInt);
+        //设置系统标识
         msgInner.setSysFlag(sysFlag);
+        //设置消息诞生的时间戳
         msgInner.setBornTimestamp(requestHeader.getBornTimestamp());
+        //发送消息的主机
         msgInner.setBornHost(ctx.channel().remoteAddress());
+        //设置存储消息的主机
         msgInner.setStoreHost(this.getStoreHost());
+        //设置消息的重试次数
         msgInner.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader
             .getReconsumeTimes());
         return msgInner;
     }
 
+    /**
+     * 获取消息的存储地址
+     */
     public SocketAddress getStoreHost() {
         return storeHost;
     }
 
+    /**
+     * 消息内容检验
+     *
+     * @param ctx 通道处理上下文
+     * @param requestHeader 请求头
+     * @param request 远程命令
+     * @param response 响应命令
+     */
     protected RemotingCommand msgContentCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, RemotingCommand request,
         final RemotingCommand response) {
+        //验证主题的最大长度
         if (requestHeader.getTopic().length() > Byte.MAX_VALUE) {
+            //打印日志
             log.warn("putMessage message topic length too long {}", requestHeader.getTopic().length());
+            //设置消息返回编码为非法
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
         }
+        //验证请求头属性的最大长度
         if (requestHeader.getProperties() != null && requestHeader.getProperties().length() > Short.MAX_VALUE) {
+            //打印日志
             log.warn("putMessage message properties length too long {}", requestHeader.getProperties().length());
+            //设置消息返回编码为非法
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
         }
+        //验证请求头的内容是否大于最大长度
         if (request.getBody().length > DBMsgConstants.MAX_BODY_SIZE) {
             log.warn(" topic {}  msg body size {}  from {}", requestHeader.getTopic(),
                 request.getBody().length, ChannelUtil.getRemoteIp(ctx.channel()));
+            //设置提示信息
             response.setRemark("msg body must be less 64KB");
+            //设置消息返回编码为非法
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
         }
         return response;
     }
 
+    /**
+     * 消息校验
+     *
+     * @param ctx 通道处理上下文
+     * @param requestHeader 请求头
+     * @param response 响应命令
+     */
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+        //校验broker权限，如果broker不可写，并且
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);

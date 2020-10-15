@@ -58,7 +58,7 @@ import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-
+/**/
 public class DefaultMessageStore implements MessageStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -66,6 +66,9 @@ public class DefaultMessageStore implements MessageStore {
     // CommitLog
     private final CommitLog commitLog;
 
+    /**
+     * key->主题，value（key->队列id，value->消费队列）
+     */
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
     private final FlushConsumeQueueService flushConsumeQueueService;
@@ -97,6 +100,9 @@ public class DefaultMessageStore implements MessageStore {
     private final MessageArrivingListener messageArrivingListener;
     private final BrokerConfig brokerConfig;
 
+    /**
+     * 服务是否关闭
+     */
     private volatile boolean shutdown = true;
 
     private StoreCheckpoint storeCheckpoint;
@@ -507,11 +513,15 @@ public class DefaultMessageStore implements MessageStore {
 
         GetMessageResult getResult = new GetMessageResult();
 
+        //获取最大物理偏移量
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
+        //根据topic和queueId获取消息队列
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
+            //获取消息队列中最小偏移量
             minOffset = consumeQueue.getMinOffsetInQueue();
+            ////获取消息队列中最大偏移量
             maxOffset = consumeQueue.getMaxOffsetInQueue();
 
             if (maxOffset == 0) {
@@ -531,6 +541,7 @@ public class DefaultMessageStore implements MessageStore {
                     nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
                 }
             } else {
+                //从consumeQueue中从当前offset到当前consumeQueue中最大可读消息内存
                 SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(offset);
                 if (bufferConsumeQueue != null) {
                     try {
@@ -551,12 +562,15 @@ public class DefaultMessageStore implements MessageStore {
                             maxPhyOffsetPulling = offsetPy;
 
                             if (nextPhyFileStartOffset != Long.MIN_VALUE) {
+                                //如果拉取到的消息偏移量小于下一个要拉取的物理偏移量的话，直接跳过该条消息，表明offsetPy是个无效的偏移量
                                 if (offsetPy < nextPhyFileStartOffset)
                                     continue;
                             }
 
+                            //检查消息是否在磁盘中
                             boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
 
+                            //判断是否已经拉取足够的消息
                             if (this.isTheBatchFull(sizePy, maxMsgNums, getResult.getBufferTotalSize(), getResult.getMessageCount(),
                                 isInDisk)) {
                                 break;
@@ -590,10 +604,12 @@ public class DefaultMessageStore implements MessageStore {
                                     status = GetMessageStatus.MESSAGE_WAS_REMOVING;
                                 }
 
+                                //获取下一个文件偏移量
                                 nextPhyFileStartOffset = this.commitLog.rollNextFile(offsetPy);
                                 continue;
                             }
 
+                            //从commitLog文件中获取到消息还需进行再次过滤
                             if (messageFilter != null
                                 && !messageFilter.isMatchedByCommitLog(selectResult.getByteBuffer().slice(), null)) {
                                 if (getResult.getBufferTotalSize() == 0) {
@@ -652,7 +668,15 @@ public class DefaultMessageStore implements MessageStore {
         return getResult;
     }
 
+    /**
+     * 获取队列中的最大偏移量
+     *
+     * @param queueId 队列id
+     * @param topic 主题
+     * @return 最大偏移量
+     */
     public long getMaxOffsetInQueue(String topic, int queueId) {
+        //查询消费队列
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
             long offset = logic.getMaxOffsetInQueue();
@@ -662,9 +686,16 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
+    /**
+     * 获取队列的最小偏移量
+     *
+     * @param topic 主题
+     * @param queueId 队列id
+     */
     public long getMinOffsetInQueue(String topic, int queueId) {
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
+            //获取队列的最小偏移量
             return logic.getMinOffsetInQueue();
         }
 
@@ -690,6 +721,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
+        //查询消费队列
         ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
             return logic.getOffsetInQueueByTime(timestamp);
@@ -1066,7 +1098,7 @@ public class DefaultMessageStore implements MessageStore {
     public boolean checkInDiskByConsumeOffset(final String topic, final int queueId, long consumeOffset) {
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();
-
+        //查询消费队列
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(consumeOffset);
@@ -1126,10 +1158,21 @@ public class DefaultMessageStore implements MessageStore {
         return null;
     }
 
+    /**
+     * 查询消费队列
+     *
+     * @param queueId 队列id
+     * @param topic 主题
+     * @return 消费队列
+     */
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {
+        //根据主题获取各个队列的消费队列列表
         ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
+        //主题下各个队列的消费队列列表为空
         if (null == map) {
+            //创建新的主题下各个队列的消费队列列表
             ConcurrentMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<Integer, ConsumeQueue>(128);
+            //将主题和主题下各个队列的消费队列列表绑定
             ConcurrentMap<Integer, ConsumeQueue> oldMap = consumeQueueTable.putIfAbsent(topic, newMap);
             if (oldMap != null) {
                 map = oldMap;
@@ -1138,6 +1181,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
+        //根据队列id获取消费队列
         ConsumeQueue logic = map.get(queueId);
         if (null == logic) {
             ConsumeQueue newLogic = new ConsumeQueue(
@@ -1165,34 +1209,57 @@ public class DefaultMessageStore implements MessageStore {
         return nextOffset;
     }
 
+    /**
+     * 检查消息是否在磁盘中
+     *
+     * @param offsetPy 物理偏移量
+     * @param maxOffsetPy 最大的物理偏移量
+     * @return {@code true}消息在磁盘中
+     */
     private boolean checkInDiskByCommitOffset(long offsetPy, long maxOffsetPy) {
         long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
         return (maxOffsetPy - offsetPy) > memory;
     }
 
+    /**
+     * 本次是否已经拉取到足够的消息
+     *
+     * @param sizePy 待拉取的长度
+     * @param maxMsgNums 最大的拉取消息数
+     * @param bufferTotal 已拉取消息字节数
+     * @param isInDisk {@code true}消息在磁盘
+     * @param messageTotal 已拉取的消息条数
+     * @return {@code true}已经拉取足够的消息
+     */
     private boolean isTheBatchFull(int sizePy, int maxMsgNums, int bufferTotal, int messageTotal, boolean isInDisk) {
 
         if (0 == bufferTotal || 0 == messageTotal) {
             return false;
         }
 
+        //已经拉取到足够的消息，已经拉取到maxMsgNums消息
         if (maxMsgNums <= messageTotal) {
             return true;
         }
 
+        //如果该消息存储在磁盘
         if (isInDisk) {
+            //如果已拉取消息字节数+待拉取的长度大于maxTransferBytesOnMessageInDisk，已经拉取足够
             if ((bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInDisk()) {
                 return true;
             }
 
+            //如果已拉取消息条数大于maxTransferCountOnMessageInDisk，已经拉取足够
             if (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInDisk() - 1) {
                 return true;
             }
-        } else {
+        } else {//在内存中
+            //如果已拉取消息字节数+待拉取的长度大于maxTransferBytesOnMessageInMemory，已经拉取足够
             if ((bufferTotal + sizePy) > this.messageStoreConfig.getMaxTransferBytesOnMessageInMemory()) {
                 return true;
             }
 
+            //如果已拉取消息条数大于maxTransferCountOnMessageInMemory，已经拉取足够
             if (messageTotal > this.messageStoreConfig.getMaxTransferCountOnMessageInMemory() - 1) {
                 return true;
             }

@@ -98,13 +98,22 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final ConcurrentMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<String, ChannelWrapper>();
 
     /**
-     *
+     * 轮询待响应列表定时器
      */
     private final Timer timer = new Timer("ClientHouseKeepingService", true);
 
+    /**
+     * 所有的nameSrv地址列表
+     */
     private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<List<String>>();
     private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<String>();
+    /**
+     * 为了随机的选择namesrv地址
+     */
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
+    /**
+     * namesrv通道锁
+     */
     private final Lock lockNamesrvChannel = new ReentrantLock();
 
     /**
@@ -221,13 +230,16 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             @Override
             public void run() {
                 try {
+                    //定期调用此方法来扫描已过期的请求并使其过期
                     NettyRemotingClient.this.scanResponseTable();
                 } catch (Throwable e) {
+                    //打印日志
                     log.error("scanResponseTable exception", e);
                 }
             }
         }, 1000 * 3, 1000);
 
+        //通道事件监听器不为空
         if (this.channelEventListener != null) {
             this.nettyEventExecutor.start();
         }
@@ -266,44 +278,64 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    /**
+     * 关闭通道
+     *
+     * @param addr 远程地址
+     * @param channel 远程通道
+     */
     public void closeChannel(final String addr, final Channel channel) {
         if (null == channel)
+            //通道为空直接返回回去
             return;
 
+        //获取远程地址
         final String addrRemote = null == addr ? RemotingHelper.parseChannelRemoteAddr(channel) : addr;
 
         try {
             if (this.lockChannelTables.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
+                    //是否需要从channelTables中移除通道
                     boolean removeItemFromTable = true;
+                    //根据地址获取通道的包装类
                     final ChannelWrapper prevCW = this.channelTables.get(addrRemote);
 
+                    //打印日志
                     log.info("closeChannel: begin close the channel[{}] Found: {}", addrRemote, prevCW != null);
 
                     if (null == prevCW) {
+                        //通道的包装类为空，打印日志
                         log.info("closeChannel: the channel[{}] has been removed from the channel table before", addrRemote);
                         removeItemFromTable = false;
                     } else if (prevCW.getChannel() != channel) {
+                        //通道不相等，表明通道已经关闭，并且创建新的通道
                         log.info("closeChannel: the channel[{}] has been closed before, and has been created again, nothing to do.",
                             addrRemote);
                         removeItemFromTable = false;
                     }
 
                     if (removeItemFromTable) {
+                        //将通道从channelTables中移除
                         this.channelTables.remove(addrRemote);
+                        //打印日志
                         log.info("closeChannel: the channel[{}] was removed from channel table", addrRemote);
                     }
 
+                    //关闭通道
                     RemotingUtil.closeChannel(channel);
                 } catch (Exception e) {
+                    //出现异常打印日志
                     log.error("closeChannel: close the channel exception", e);
                 } finally {
+                    //释放锁
                     this.lockChannelTables.unlock();
                 }
             } else {
+                //获取锁超时，打印日志
                 log.warn("closeChannel: try to lock channel table, but timeout, {}ms", LOCK_TIMEOUT_MILLIS);
             }
         } catch (InterruptedException e) {
+            //被中断，打印日志
             log.error("closeChannel exception", e);
         }
     }
@@ -401,94 +433,148 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
 
-
+    /**
+     * 同步发送命令
+     *
+     * @param addr 远程地址
+     * @param request 请求命令
+     * @param timeoutMillis 发送命令的超时时间
+     */
     @Override
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
+        //处理的开始时间
         long beginStartTime = System.currentTimeMillis();
+        //根据地址获取通道
         final Channel channel = this.getAndCreateChannel(addr);
+        //如果通道存在并且活跃，对其进行处理
         if (channel != null && channel.isActive()) {
             try {
+                //请求执行之前，执行所有钩子的doBeforeRequest方法
                 doBeforeRpcHooks(addr, request);
+                //当前耗费的时间
                 long costTime = System.currentTimeMillis() - beginStartTime;
+                //如果耗费的时间大于超时时间
                 if (timeoutMillis < costTime) {
+                    //抛出RemotingTimeoutException异常
                     throw new RemotingTimeoutException("invokeSync call timeout");
                 }
+                //执行命令
                 RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis - costTime);
+                //请求执行之后，执行所有钩子的doAfterResponse方法，可以不用再调RemotingHelper.parseChannelRemoteAddr(channel)，直接传addr就可以
                 doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(channel), request, response);
+                //返回响应请求
                 return response;
             } catch (RemotingSendRequestException e) {
+                //出现异常打印日志
                 log.warn("invokeSync: send request exception, so close the channel[{}]", addr);
+                //关闭通道
                 this.closeChannel(addr, channel);
+                //抛出异常
                 throw e;
             } catch (RemotingTimeoutException e) {
+                //如果超时客户端关闭socket开关
                 if (nettyClientConfig.isClientCloseSocketIfTimeout()) {
+                    //开关开，关闭通道
                     this.closeChannel(addr, channel);
+                    //打印日志
                     log.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, addr);
                 }
+                //打印日志
                 log.warn("invokeSync: wait response timeout exception, the channel[{}]", addr);
+                //抛出异常
                 throw e;
             }
         } else {
+            //关闭通道
             this.closeChannel(addr, channel);
+            //抛出连接异常
             throw new RemotingConnectException(addr);
         }
     }
 
+    /**
+     * 获取通道，获取不到创建新通道
+     */
     private Channel getAndCreateChannel(final String addr) throws InterruptedException {
         if (null == addr) {
+            //如果传入进来的地址为空，获取或创建nameServer通道
             return getAndCreateNameserverChannel();
         }
 
+        //先从内存中获取包装的通道信息
         ChannelWrapper cw = this.channelTables.get(addr);
+        //通道存在并且活跃的
         if (cw != null && cw.isOK()) {
+            //返回通道信息
             return cw.getChannel();
         }
-
+        //内存中不存在创建新通道
         return this.createChannel(addr);
     }
 
     private Channel getAndCreateNameserverChannel() throws InterruptedException {
+        //上次选择的nameSrv地址
         String addr = this.namesrvAddrChoosed.get();
+        //选择nameSrv地址不为空
         if (addr != null) {
+            //从内存中获取
             ChannelWrapper cw = this.channelTables.get(addr);
+            //通道存在并且活跃的
             if (cw != null && cw.isOK()) {
+                //返回通道信息
                 return cw.getChannel();
             }
         }
 
+        //否则获取到所有nameSrv地址列表
         final List<String> addrList = this.namesrvAddrList.get();
+        //尝试加锁
         if (this.lockNamesrvChannel.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
             try {
+                //再次获取上次选择的nameSrv地址
                 addr = this.namesrvAddrChoosed.get();
+                //选择nameSrv地址不为空
                 if (addr != null) {
+                    //从内存中获取
                     ChannelWrapper cw = this.channelTables.get(addr);
+                    //通道存在并且活跃的
                     if (cw != null && cw.isOK()) {
+                        //返回通道信息
                         return cw.getChannel();
                     }
                 }
 
                 if (addrList != null && !addrList.isEmpty()) {
+                    //nameSrv地址列表不为空，遍历nameSrv地址列表
                     for (int i = 0; i < addrList.size(); i++) {
+                        //namesrvIndex进行递增，随机取
                         int index = this.namesrvIndex.incrementAndGet();
+                        //取绝对值，防止溢出
                         index = Math.abs(index);
+                        //取模
                         index = index % addrList.size();
+                        //获取到namesrv地址
                         String newAddr = addrList.get(index);
-
                         this.namesrvAddrChoosed.set(newAddr);
                         log.info("new name server is chosen. OLD: {} , NEW: {}. namesrvIndex = {}", addr, newAddr, namesrvIndex);
                         Channel channelNew = this.createChannel(newAddr);
+                        //通道创建成功
                         if (channelNew != null) {
+                            //返回
                             return channelNew;
                         }
                     }
                 }
             } catch (Exception e) {
+                //出现异常打印日志
                 log.error("getAndCreateNameserverChannel: create name server channel exception", e);
             } finally {
+                //释放锁
                 this.lockNamesrvChannel.unlock();
             }
         } else {
+            //获取锁超时打印日志
             log.warn("getAndCreateNameserverChannel: try to lock name server, but timeout, {}ms", LOCK_TIMEOUT_MILLIS);
         }
 
@@ -506,23 +592,30 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         ChannelWrapper cw = this.channelTables.get(addr);
         //地址所对应的通道存在，并且活跃，将其通道关闭，并从channelTables中移除
         if (cw != null && cw.isOK()) {
+            //关闭通道，从channelTables中移除
             cw.getChannel().close();
             channelTables.remove(addr);
         }
 
+        //尝试加锁
         if (this.lockChannelTables.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
             try {
                 boolean createNewConnection;
+                //再次获取地址所对应的通道
                 cw = this.channelTables.get(addr);
                 if (cw != null) {
 
                     if (cw.isOK()) {
+                        //地址所对应的通道存在，并且活跃，将其通道关闭，并从channelTables中移除
                         cw.getChannel().close();
+                        //从channelTables中移除
                         this.channelTables.remove(addr);
+                        //需重新创建个通道
                         createNewConnection = true;
-                    } else if (!cw.getChannelFuture().isDone()) {
+                    } else if (!cw.getChannelFuture().isDone()) {//通道还未创建完成
                         createNewConnection = false;
                     } else {
+                        //从channelTables中移除
                         this.channelTables.remove(addr);
                         createNewConnection = true;
                     }
@@ -531,30 +624,42 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
 
                 if (createNewConnection) {
+                    //创建新通道
                     ChannelFuture channelFuture = this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
+                    //打印日志
                     log.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
+                    //将通道进行包装
                     cw = new ChannelWrapper(channelFuture);
+                    //加入到channelTables中
                     this.channelTables.put(addr, cw);
                 }
             } catch (Exception e) {
+                //出现异常打印日志
                 log.error("createChannel: create channel exception", e);
             } finally {
+                //释放锁
                 this.lockChannelTables.unlock();
             }
         } else {
+            //超时时间获取不到锁打印日志
             log.warn("createChannel: try to lock channel table, but timeout, {}ms", LOCK_TIMEOUT_MILLIS);
         }
 
         if (cw != null) {
+            //如果通道不为空
             ChannelFuture channelFuture = cw.getChannelFuture();
+            //等待通道连接成功，连接超时时间3s
             if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
                 if (cw.isOK()) {
+                    //通道连接成功打印日志
                     log.info("createChannel: connect remote host[{}] success, {}", addr, channelFuture.toString());
                     return cw.getChannel();
                 } else {
+                    //通道连接失败打印日志
                     log.warn("createChannel: connect remote host[" + addr + "] failed, " + channelFuture.toString(), channelFuture.cause());
                 }
             } else {
+                //如果在超时时间通道还未连接成功，打印日志
                 log.warn("createChannel: connect remote host[{}] timeout {}ms, {}", addr, this.nettyClientConfig.getConnectTimeoutMillis(),
                     channelFuture.toString());
             }
@@ -563,27 +668,46 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return null;
     }
 
+    /**
+     * 异步发送消息
+     *
+     * @param addr 请求地址
+     * @param request 请求命令
+     * @param timeoutMillis 超时时间
+     * @param invokeCallback 回调方法
+     */
     @Override
     public void invokeAsync(String addr, RemotingCommand request, long timeoutMillis, InvokeCallback invokeCallback)
         throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException {
+        //开始执行时间
         long beginStartTime = System.currentTimeMillis();
+        //获取通道，不存在创建
         final Channel channel = this.getAndCreateChannel(addr);
+        //通道不为空，并且活跃进行处理
         if (channel != null && channel.isActive()) {
             try {
+                //命令执行之前，执行钩子方法
                 doBeforeRpcHooks(addr, request);
+                //目前的耗费的时间
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTime) {
+                    //如果耗费的时间大于超时时间，抛异常
                     throw new RemotingTooMuchRequestException("invokeAsync call timeout");
                 }
                 this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, invokeCallback);
             } catch (RemotingSendRequestException e) {
+                //发送异常，打印日志
                 log.warn("invokeAsync: send request exception, so close the channel[{}]", addr);
+                //关闭通道
                 this.closeChannel(addr, channel);
+                //抛异常
                 throw e;
             }
         } else {
+            //通道不活跃或者为空，进行关闭
             this.closeChannel(addr, channel);
+            //抛远程连接异常
             throw new RemotingConnectException(addr);
         }
     }
@@ -594,15 +718,22 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {
+                //在命令之前执行所有钩子的doBeforeRequest方法
                 doBeforeRpcHooks(addr, request);
+                //向通道发送命令
                 this.invokeOnewayImpl(channel, request, timeoutMillis);
             } catch (RemotingSendRequestException e) {
+                //出现异常
                 log.warn("invokeOneway: send request exception, so close the channel[{}]", addr);
+                //关闭通道
                 this.closeChannel(addr, channel);
+                //抛异常
                 throw e;
             }
         } else {
+            //通道不可用，关闭通道
             this.closeChannel(addr, channel);
+            //抛出远程连接异常
             throw new RemotingConnectException(addr);
         }
     }
@@ -611,10 +742,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public void registerProcessor(int requestCode, NettyRequestProcessor processor, ExecutorService executor) {
         ExecutorService executorThis = executor;
         if (null == executor) {
+            //如果传入的执行器为空使用公共的执行器
             executorThis = this.publicExecutor;
         }
 
+        //将处理器和执行器组合起来
         Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<NettyRequestProcessor, ExecutorService>(processor, executorThis);
+        //加入到处理器列表中
         this.processorTable.put(requestCode, pair);
     }
 
@@ -723,11 +857,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             final String remote = remoteAddress == null ? "UNKNOWN" : RemotingHelper.parseSocketAddressAddr(remoteAddress);
             log.info("NETTY CLIENT PIPELINE: CONNECT  {} => {}", local, remote);
 
-            //连接
+            //等待下一个事件
             super.connect(ctx, remoteAddress, localAddress, promise);
 
             if (NettyRemotingClient.this.channelEventListener != null) {
-                //如果netty的通道事件监听不为空，把netty事件交给执行器
+                //如果netty的通道事件监听不为空，把连接事件交给执行器
                 NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.CONNECT, remote, ctx.channel()));
             }
         }
@@ -735,23 +869,38 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void disconnect(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            //打印日志
             log.info("NETTY CLIENT PIPELINE: DISCONNECT {}", remoteAddress);
+            //关闭通道
             closeChannel(ctx.channel());
+            //等待下一个事件
             super.disconnect(ctx, promise);
 
             if (NettyRemotingClient.this.channelEventListener != null) {
+                //如果netty的通道事件监听不为空，把连接事件交给执行器
                 NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.CLOSE, remoteAddress, ctx.channel()));
             }
         }
 
+        /**
+         * 通道关闭
+         *
+         * @param ctx 通道处理器上下文
+         * @param promise 可写的ChannelFuture
+         */
         @Override
         public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
+            //远程地址
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            //打印日志
             log.info("NETTY CLIENT PIPELINE: CLOSE {}", remoteAddress);
+            //关闭通道
             closeChannel(ctx.channel());
+            //等待下一个事件
             super.close(ctx, promise);
             NettyRemotingClient.this.failFast(ctx.channel());
             if (NettyRemotingClient.this.channelEventListener != null) {
+                //事件监听处理器不为空，发送通道关闭事件
                 NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.CLOSE, remoteAddress, ctx.channel()));
             }
         }

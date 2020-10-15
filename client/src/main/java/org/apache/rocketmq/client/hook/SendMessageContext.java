@@ -24,19 +24,61 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageType;
 
+/**
+ * 发送消息上下文
+ */
 public class SendMessageContext {
+    /**
+     * 生产组
+     */
     private String producerGroup;
+    /**
+     * 消息
+     */
     private Message message;
+    /**
+     * 消息队列
+     */
     private MessageQueue mq;
+    /**
+     * broker地址
+     */
     private String brokerAddr;
+    /**
+     * 消息出生主机
+     */
     private String bornHost;
+    /**
+     * 通信传输模式
+     */
     private CommunicationMode communicationMode;
+    /**
+     * 发送结果
+     */
     private SendResult sendResult;
+    /**
+     * 出现异常
+     */
     private Exception exception;
+    /**
+     * mq跟踪上下文
+     */
     private Object mqTraceContext;
+    /**
+     * 扩展属性
+     */
     private Map<String, String> props;
+    /**
+     * 默认生产者
+     */
     private DefaultMQProducerImpl producer;
+    /**
+     * 消息类型
+     */
     private MessageType msgType = MessageType.Normal_Msg;
+    /**
+     * 命名空间
+     */
     private String namespace;
 
     public MessageType getMsgType() {

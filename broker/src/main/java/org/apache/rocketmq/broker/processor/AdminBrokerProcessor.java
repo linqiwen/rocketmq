@@ -116,7 +116,9 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
-
+/**
+ * 管理broker处理器
+ */
 public class AdminBrokerProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
@@ -133,14 +135,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.updateAndCreateTopic(ctx, request);
             case RequestCode.DELETE_TOPIC_IN_BROKER:
                 return this.deleteTopic(ctx, request);
+            //获取所有主题配置
             case RequestCode.GET_ALL_TOPIC_CONFIG:
                 return this.getAllTopicConfig(ctx, request);
             case RequestCode.UPDATE_BROKER_CONFIG:
                 return this.updateBrokerConfig(ctx, request);
             case RequestCode.GET_BROKER_CONFIG:
                 return this.getBrokerConfig(ctx, request);
+            //搜索特定时间的消息队列偏移量
             case RequestCode.SEARCH_OFFSET_BY_TIMESTAMP:
                 return this.searchOffsetByTimestamp(ctx, request);
+            //获取消息队列的最大偏移量
             case RequestCode.GET_MAX_OFFSET:
                 return this.getMaxOffset(ctx, request);
             case RequestCode.GET_MIN_OFFSET:
@@ -149,8 +154,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getEarliestMsgStoretime(ctx, request);
             case RequestCode.GET_BROKER_RUNTIME_INFO:
                 return this.getBrokerRuntimeInfo(ctx, request);
+            //对批量MQ进行加锁
             case RequestCode.LOCK_BATCH_MQ:
                 return this.lockBatchMQ(ctx, request);
+            //解锁批量MQ
             case RequestCode.UNLOCK_BATCH_MQ:
                 return this.unlockBatchMQ(ctx, request);
             case RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
@@ -167,8 +174,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getProducerConnectionList(ctx, request);
             case RequestCode.GET_CONSUME_STATS:
                 return this.getConsumeStats(ctx, request);
+            //获取所有消费者偏移量
             case RequestCode.GET_ALL_CONSUMER_OFFSET:
                 return this.getAllConsumerOffset(ctx, request);
+            //获取所有延迟偏移量
             case RequestCode.GET_ALL_DELAY_OFFSET:
                 return this.getAllDelayOffset(ctx, request);
             case RequestCode.INVOKE_BROKER_TO_RESET_OFFSET:
@@ -269,32 +278,47 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 获取所有主题配置
+     *
+     * @param ctx 通道处理上下文
+     * @param request 请求命令
+     * @return 响应命令
+     */
     private RemotingCommand getAllTopicConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+        //构造响应命令
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetAllTopicConfigResponseHeader.class);
         // final GetAllTopicConfigResponseHeader responseHeader =
         // (GetAllTopicConfigResponseHeader) response.readCustomHeader();
-
+        //获取主题配置json串内容
         String content = this.brokerController.getTopicConfigManager().encode();
         if (content != null && content.length() > 0) {
             try {
+                //设置响应内容
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
+                //出现异常打印日志
                 log.error("", e);
-
+                //响应编码设置为系统错误
                 response.setCode(ResponseCode.SYSTEM_ERROR);
+                //设置响应提示
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;
             }
         } else {
+            //打印日志，这个broker没有任何主题
             log.error("No topic in this broker, client: {}", ctx.channel().remoteAddress());
+            //响应编码设置为系统错误
             response.setCode(ResponseCode.SYSTEM_ERROR);
+            //设置响应提示
             response.setRemark("No topic in this broker");
             return response;
         }
-
+        //响应编码设置为成功
         response.setCode(ResponseCode.SUCCESS);
+        //设置响应提示
         response.setRemark(null);
-
+        //返回响应命令
         return response;
     }
 
@@ -359,35 +383,56 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 搜索特定时间的消息队列偏移量
+     *
+     * @param ctx 通道处理上下文
+     * @param request 请求命令
+     * @return 响应命令
+     */
     private RemotingCommand searchOffsetByTimestamp(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
+        //创建响应命令
         final RemotingCommand response = RemotingCommand.createResponseCommand(SearchOffsetResponseHeader.class);
+        //创建特定时间的消息队列偏移量响应头
         final SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.readCustomHeader();
+        //获取特定时间的消息队列偏移量请求头
         final SearchOffsetRequestHeader requestHeader =
             (SearchOffsetRequestHeader) request.decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
 
+        //搜索特定时间的消息队列偏移量
         long offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
             requestHeader.getTimestamp());
 
+        //设置偏移量
         responseHeader.setOffset(offset);
 
+        //设置响应编码
         response.setCode(ResponseCode.SUCCESS);
+        //设置响应提示
         response.setRemark(null);
         return response;
     }
 
     private RemotingCommand getMaxOffset(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
+        //创建响应命令
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
+        //获取响应命令响应头
         final GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.readCustomHeader();
+        //获取请求命令中消息队列最大偏移量请求头
         final GetMaxOffsetRequestHeader requestHeader =
             (GetMaxOffsetRequestHeader) request.decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
 
+        //获取消息队列的最大偏移量
         long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
 
+        //设置消息队列的最大偏移量
         responseHeader.setOffset(offset);
 
+        //设置响应编码成功
         response.setCode(ResponseCode.SUCCESS);
+        //设置响应提示
         response.setRemark(null);
         return response;
     }
@@ -437,9 +482,18 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 对批量MQ进行加锁
+     *
+     * @param ctx 通道处理上下文
+     * @param request 请求内容
+     * @return 响应命令
+     */
     private RemotingCommand lockBatchMQ(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
+        //创建响应命令
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        //批量锁mq请求内容
         LockBatchRequestBody requestBody = LockBatchRequestBody.decode(request.getBody(), LockBatchRequestBody.class);
 
         Set<MessageQueue> lockOKMQSet = this.brokerController.getRebalanceLockManager().tryLockBatch(
@@ -447,27 +501,41 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             requestBody.getMqSet(),
             requestBody.getClientId());
 
+        //构造对批量MQ进行加锁响应内容
         LockBatchResponseBody responseBody = new LockBatchResponseBody();
+        //设置加锁的MQ集合
         responseBody.setLockOKMQSet(lockOKMQSet);
 
+        //设置响应内容
         response.setBody(responseBody.encode());
+        //设置响应编码
         response.setCode(ResponseCode.SUCCESS);
+        //设置响应提示
         response.setRemark(null);
         return response;
     }
 
+    /**
+     * 解锁批量MQ
+     *
+     * @param ctx 通道处理上下文
+     * @param request 远程请求命令
+     */
     private RemotingCommand unlockBatchMQ(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        //获取到解锁批量请求内容
         UnlockBatchRequestBody requestBody = UnlockBatchRequestBody.decode(request.getBody(), UnlockBatchRequestBody.class);
 
         this.brokerController.getRebalanceLockManager().unlockBatch(
-            requestBody.getConsumerGroup(),
-            requestBody.getMqSet(),
-            requestBody.getClientId());
+            requestBody.getConsumerGroup(),//消费组
+            requestBody.getMqSet(),//消息队列列表
+            requestBody.getClientId());//客户端id
 
+        //设置编码为成功
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
+        //返回响应
         return response;
     }
 
@@ -731,23 +799,32 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 获取所有消费者偏移量
+     */
     private RemotingCommand getAllConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         String content = this.brokerController.getConsumerOffsetManager().encode();
         if (content != null && content.length() > 0) {
             try {
+                //设置响应内容
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
+                //出现错误打印日志
                 log.error("get all consumer offset from master error.", e);
-
+                //响应编码设置成系统错误
                 response.setCode(ResponseCode.SYSTEM_ERROR);
+                //设置响应提示
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;
             }
         } else {
+            //该broker没有消费偏移量，打印日志
             log.error("No consumer offset in this broker, client: {} ", ctx.channel().remoteAddress());
+            //响应编码设置成系统错误
             response.setCode(ResponseCode.SYSTEM_ERROR);
+            //设置响应提示
             response.setRemark("No consumer offset in this broker");
             return response;
         }
@@ -758,12 +835,23 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * 获取所有延迟偏移量
+     *
+     * @param request 请求命令
+     * @param ctx 通道处理上下文
+     */
     private RemotingCommand getAllDelayOffset(ChannelHandlerContext ctx, RemotingCommand request) {
+        //构造响应命令
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
+        //延迟偏移量只支持DefaultMessageStore，如果不是DefaultMessageStore返回系统错误编码
         if (!(this.brokerController.getMessageStore() instanceof DefaultMessageStore)) {
+            //如果不是DefaultMessageStore返回系统错误编码，打印日志，返回系统错误
             log.error("Delay offset not supported in this messagetore, client: {} ", ctx.channel().remoteAddress());
+            //响应编码设置成系统错误
             response.setCode(ResponseCode.SYSTEM_ERROR);
+            //设置响应提示
             response.setRemark("Delay offset not supported in this messagetore");
             return response;
         }
@@ -771,10 +859,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         String content = ((DefaultMessageStore) this.brokerController.getMessageStore()).getScheduleMessageService().encode();
         if (content != null && content.length() > 0) {
             try {
+                //设置响应内容
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
                 log.error("Get all delay offset from master error.", e);
-
+                //响应编码设置成系统错误
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
                 return response;

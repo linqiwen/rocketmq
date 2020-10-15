@@ -41,7 +41,7 @@ public interface OffsetStore {
     void updateOffset(final MessageQueue mq, final long offset, final boolean increaseOnly);
 
     /**
-     * 从本地存储获取偏移量
+     * 从本地存储或Broker获取偏移量
      *
      * @return 所获取的偏移量
      */

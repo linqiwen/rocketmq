@@ -19,19 +19,43 @@ package org.apache.rocketmq.common.subscription;
 
 import org.apache.rocketmq.common.MixAll;
 
+/**
+ * 订阅组配置
+ */
 public class SubscriptionGroupConfig {
 
+    /**
+     * 消费组名称
+     */
     private String groupName;
 
+    /**
+     * 消费启用开关
+     */
     private boolean consumeEnable = true;
+    /**
+     * 从最小位置开始消费开关
+     */
     private boolean consumeFromMinEnable = true;
 
+    /**
+     * 使用广播开关
+     */
     private boolean consumeBroadcastEnable = true;
 
+    /**
+     * 重试次数
+     */
     private int retryQueueNums = 1;
 
+    /**
+     * 最大的重试次数
+     */
     private int retryMaxTimes = 16;
 
+    /**
+     * 主brokerId
+     */
     private long brokerId = MixAll.MASTER_ID;
 
     private long whichBrokerWhenConsumeSlowly = 1;

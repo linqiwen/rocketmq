@@ -23,10 +23,10 @@ import org.apache.rocketmq.filter.expression.MQFilterException;
 import org.apache.rocketmq.filter.parser.SelectorParser;
 
 /**
- * SQL92 Filter, just a wrapper of {@link org.apache.rocketmq.filter.parser.SelectorParser}.
+ * SQL92 过滤器, 只是{@link org.apache.rocketmq.filter.parser.SelectorParser}包装
  * <p/>
  * <p>
- * Do not use this filter directly.Use {@link FilterFactory#get} to select a filter.
+ * 请勿直接使用此过滤器.使用 {@link FilterFactory#get} 去选择过滤器.
  * </p>
  */
 public class SqlFilter implements FilterSpi {

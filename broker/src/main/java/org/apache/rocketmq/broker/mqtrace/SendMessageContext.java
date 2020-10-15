@@ -20,31 +20,103 @@ import java.util.Properties;
 import org.apache.rocketmq.common.message.MessageType;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+/**
+ * 发送消息上下文
+ */
 public class SendMessageContext {
+    /**
+     * 生产者组
+     */
     private String producerGroup;
+    /**
+     * 主题
+     */
     private String topic;
+    /**
+     * 消息id
+     */
     private String msgId;
+    /**
+     *
+     */
     private String originMsgId;
+    /**
+     * 队列id
+     */
     private Integer queueId;
+    /**
+     * 队列偏移量
+     */
     private Long queueOffset;
+    /**
+     * broker地址
+     */
     private String brokerAddr;
+    /**
+     * 发送消息的主机
+     */
     private String bornHost;
+    /**
+     * 内容长度
+     */
     private int bodyLength;
+    /**
+     *
+     */
     private int code;
+    /**
+     * 错误提示
+     */
     private String errorMsg;
+    /**
+     * 消息属性
+     */
     private String msgProps;
+    /**
+     * mq的跟踪上下文
+     */
     private Object mqTraceContext;
+    /**
+     * 扩展属性
+     */
     private Properties extProps;
+    /**
+     * broker的区域id
+     */
     private String brokerRegionId;
+    /**
+     * mq唯一key
+     */
     private String msgUniqueKey;
+    /**
+     * 消息产生的时间戳
+     */
     private long bornTimeStamp;
+    /**
+     * 消息类型
+     */
     private MessageType msgType = MessageType.Trans_msg_Commit;
     private boolean isSuccess = false;
 
+    /**
+     * 商业所有者
+     */
     private String commercialOwner;
+    /**
+     * 数据类型
+     */
     private BrokerStatsManager.StatsType commercialSendStats;
+    /**
+     * 商业的发送大小
+     */
     private int commercialSendSize;
+    /**
+     * 商业的发送次数
+     */
     private int commercialSendTimes;
+    /**
+     * 命名空间
+     */
     private String namespace;
 
     public boolean isSuccess() {

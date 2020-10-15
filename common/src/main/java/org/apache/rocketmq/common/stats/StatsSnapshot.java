@@ -17,9 +17,21 @@
 
 package org.apache.rocketmq.common.stats;
 
+/**
+ * 统计快照
+ */
 public class StatsSnapshot {
+    /**
+     * 调用总数
+     */
     private long sum;
+    /**
+     * tps
+     */
     private double tps;
+    /**
+     * 平均调用次数
+     */
     private double avgpt;
 
     public long getSum() {

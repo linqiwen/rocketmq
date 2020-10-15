@@ -40,9 +40,15 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 
+/**
+ * HA服务
+ */
 public class HAService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
+    /**
+     * 连接数
+     */
     private final AtomicInteger connectionCount = new AtomicInteger(0);
 
     private final List<HAConnection> connectionList = new LinkedList<>();
@@ -66,6 +72,11 @@ public class HAService {
         this.haClient = new HAClient();
     }
 
+    /**
+     * 更新主地址
+     *
+     * @param newAddr 新地址
+     */
     public void updateMasterAddress(final String newAddr) {
         if (this.haClient != null) {
             this.haClient.updateMasterAddress(newAddr);
@@ -325,6 +336,9 @@ public class HAService {
 
     class HAClient extends ServiceThread {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
+        /**
+         * 主地址
+         */
         private final AtomicReference<String> masterAddress = new AtomicReference<>();
         private final ByteBuffer reportOffset = ByteBuffer.allocate(8);
         private SocketChannel socketChannel;
@@ -340,9 +354,17 @@ public class HAService {
             this.selector = RemotingUtil.openSelector();
         }
 
+        /**
+         * 更新主地址
+         *
+         * @param newAddr 新地址
+         */
         public void updateMasterAddress(final String newAddr) {
+            //获取当前地址
             String currentAddr = this.masterAddress.get();
+            //当前地址为空或者当前地址和主地址不相等
             if (currentAddr == null || !currentAddr.equals(newAddr)) {
+                //设置主地址
                 this.masterAddress.set(newAddr);
                 log.info("update master address, OLD: " + currentAddr + " NEW: " + newAddr);
             }

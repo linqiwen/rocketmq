@@ -118,7 +118,7 @@ public class LocalFileOffsetStore implements OffsetStore {
             //此队列的消息偏移量存在true原有消息队列的偏移量的基础加上传入offset偏移量
             if (null != offsetOld) {
                 if (increaseOnly) {
-                    //increaseOnly为true在原有偏移量的基础上加上传入进来的偏移量
+                    //increaseOnly为true使用cas更新为传入进来的偏移量
                     MixAll.compareAndIncreaseOnly(offsetOld, offset);
                 } else {
                     //如果increaseOnly为false，将原有偏移量设置为传入进来的偏移量

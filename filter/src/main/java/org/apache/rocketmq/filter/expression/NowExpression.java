@@ -18,7 +18,7 @@
 package org.apache.rocketmq.filter.expression;
 
 /**
- * Current time expression.Just for test.
+ * 当前时间的表达式。只是为了测试
  */
 public class NowExpression extends ConstantExpression {
     public NowExpression() {

@@ -31,11 +31,20 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 抽象的事务消息检查监听器
+ */
 public abstract class AbstractTransactionalMessageCheckListener {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
+    /**
+     * broker控制器
+     */
     private BrokerController brokerController;
 
+    /**
+     * 处理半消息线程池
+     */
     private static ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000), new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
@@ -53,20 +62,33 @@ public abstract class AbstractTransactionalMessageCheckListener {
     }
 
     public void sendCheckMessage(MessageExt msgExt) throws Exception {
+        //构建检查事务状态请求头
         CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
+        //设置commitLog偏移量
         checkTransactionStateRequestHeader.setCommitLogOffset(msgExt.getCommitLogOffset());
+        //设置消息id
         checkTransactionStateRequestHeader.setOffsetMsgId(msgExt.getMsgId());
+        //设置消息唯一key
         checkTransactionStateRequestHeader.setMsgId(msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+        //设置事务id
         checkTransactionStateRequestHeader.setTransactionId(checkTransactionStateRequestHeader.getMsgId());
+        //设置队列偏移量
         checkTransactionStateRequestHeader.setTranStateTableOffset(msgExt.getQueueOffset());
+        //获取真正的消息主题，事务消息是半消息，半消息指的是对消费者不可见，半消息是将原本的主题和队列id做为消息的属性
         msgExt.setTopic(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
+        //设置队列id
         msgExt.setQueueId(Integer.parseInt(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
+        //设置存储大小
         msgExt.setStoreSize(0);
+        //获取生产者组
         String groupId = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
+        //获取生产者组的其中一个生产者
         Channel channel = brokerController.getProducerManager().getAvaliableChannel(groupId);
         if (channel != null) {
+            //通道可用，检查生产者的事务状态
             brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
         } else {
+            //通道不存在打印日志
             LOGGER.warn("Check transaction failed, channel is null. groupId={}", groupId);
         }
     }

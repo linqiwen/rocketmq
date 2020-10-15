@@ -23,10 +23,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Evaluation context from message.
+ * 来自消息的上下文
  */
 public class MessageEvaluationContext implements EvaluationContext {
 
+    /**
+     * 属性列表
+     */
     private Map<String, String> properties;
 
     public MessageEvaluationContext(Map<String, String> properties) {

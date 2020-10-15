@@ -31,6 +31,11 @@ public interface MQProducerInner {
     boolean isPublishTopicNeedUpdate(final String topic);
 
     TransactionCheckListener checkListener();
+    /**
+     * 获取事务监听器
+     *
+     * @return 事务监听器
+     */
     TransactionListener getCheckListener();
 
     void checkTransactionState(
@@ -38,6 +43,12 @@ public interface MQProducerInner {
         final MessageExt msg,
         final CheckTransactionStateRequestHeader checkRequestHeader);
 
+    /**
+     * 更新主题的发布信息
+     *
+     * @param topic 主题
+     * @param info 主题的发布信息
+     */
     void updateTopicPublishInfo(final String topic, final TopicPublishInfo info);
 
     boolean isUnitMode();

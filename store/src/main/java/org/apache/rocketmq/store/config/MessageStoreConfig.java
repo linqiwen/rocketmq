@@ -19,18 +19,22 @@ package org.apache.rocketmq.store.config;
 import java.io.File;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
-
+/**
+ * 消息存储配置
+ */
 public class MessageStoreConfig {
-    //The root directory in which the log data is kept
+    /**
+     * 保存日志数据的根目录
+     */
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
-    //The directory in which the commitlog is kept
+    //保存commitLog的目录
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
 
-    // CommitLog file size,default is 1G
+    // CommitLog 文件大小,默认是 1G
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue file size,default is 30W
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
@@ -97,14 +101,29 @@ public class MessageStoreConfig {
     private int flushCommitLogThoroughInterval = 1000 * 10;
     private int commitCommitLogThoroughInterval = 200;
     private int flushConsumeQueueThoroughInterval = 1000 * 60;
+    /**
+     * 如果消息存在于内存中最大的传输字节，默认256k
+     */
     @ImportantField
     private int maxTransferBytesOnMessageInMemory = 1024 * 256;
+    /**
+     * 如果消息存在于内存中最大的拉取条数，默认32条
+     */
     @ImportantField
     private int maxTransferCountOnMessageInMemory = 32;
+    /**
+     * 在磁盘上的最大传输字节，默认64k，如果消息存在于磁盘中
+     */
     @ImportantField
     private int maxTransferBytesOnMessageInDisk = 1024 * 64;
+    /**
+     * 在磁盘上最大的拉取条数，默认8条，如果消息存在于磁盘中
+     */
     @ImportantField
     private int maxTransferCountOnMessageInDisk = 8;
+    /**
+     * 内存中访问消息的最大比率
+     */
     @ImportantField
     private int accessMessageInMemoryMaxRatio = 40;
     @ImportantField
@@ -114,6 +133,9 @@ public class MessageStoreConfig {
     private int maxMsgsNumBatch = 64;
     @ImportantField
     private boolean messageIndexSafe = false;
+    /**
+     * ha监听端口
+     */
     private int haListenPort = 10912;
     private int haSendHeartbeatInterval = 1000 * 5;
     private int haHousekeepingInterval = 1000 * 20;
@@ -121,8 +143,14 @@ public class MessageStoreConfig {
     @ImportantField
     private String haMasterAddress = null;
     private int haSlaveFallbehindMax = 1024 * 1024 * 256;
+    /**
+     * broker角色
+     */
     @ImportantField
     private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
+    /**
+     * 刷新磁盘类型
+     */
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
     private int syncFlushTimeout = 1000 * 5;
@@ -196,6 +224,16 @@ public class MessageStoreConfig {
         this.mapedFileSizeCommitLog = mapedFileSizeCommitLog;
     }
 
+    /**
+     * 获取消费队列的映射文件大小
+     * <p>
+     *     单个consumeQueue文件中默认包含30万个条目
+     *     每个条目20个字节
+     *     300000 * 20
+     * </p>
+     *
+     * @see ConsumeQueue
+     */
     public int getMapedFileSizeConsumeQueue() {
 
         int factor = (int) Math.ceil(this.mapedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));

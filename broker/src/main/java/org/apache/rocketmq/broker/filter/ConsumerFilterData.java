@@ -27,26 +27,58 @@ import org.apache.rocketmq.filter.util.BloomFilterData;
 import java.util.Collections;
 
 /**
- * Filter data of consumer.
+ * 过滤消费者的数据
  */
 public class ConsumerFilterData {
 
+    /**
+     * 消费者组
+     */
     private String consumerGroup;
+    /**
+     * 主题
+     */
     private String topic;
+    /**
+     * 表达式
+     */
     private String expression;
+    /**
+     * 表达式类型
+     */
     private String expressionType;
+    /**
+     * 编译表达式
+     */
     private transient Expression compiledExpression;
+    /**
+     * 诞生时间
+     */
     private long bornTime;
+    /**
+     * 死亡时间
+     */
     private long deadTime = 0;
+    /**
+     * bloom filter生成的数据
+     */
     private BloomFilterData bloomFilterData;
+    /**
+     * 客户端版本
+     */
     private long clientVersion;
 
     public boolean isDead() {
         return this.deadTime >= this.bornTime;
     }
 
+    /**
+     * 死后多长时间
+     */
     public long howLongAfterDeath() {
+        //判断是否死亡
         if (isDead()) {
+            //如果当前时间减去死亡时间，获取到死亡多长时间
             return System.currentTimeMillis() - getDeadTime();
         }
         return -1;

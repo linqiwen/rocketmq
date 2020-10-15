@@ -19,7 +19,14 @@ package org.apache.rocketmq.client.consumer;
 import java.util.List;
 import org.apache.rocketmq.common.message.MessageExt;
 
+/**
+ * 拉取结果
+ */
 public class PullResult {
+
+    /**
+     * 拉取状态
+     */
     private final PullStatus pullStatus;
     private final long nextBeginOffset;
     private final long minOffset;
